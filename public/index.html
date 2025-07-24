@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Private Chat App</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+    #chat { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; }
+    #messageInput { width: 80%; padding: 10px; }
+    #sendBtn { padding: 10px 20px; }
+  </style>
+</head>
+<body>
+
+<h2>Private Chat App</h2>
+
+<label for="roomInput">Enter Room ID (e.g. user1_user2):</label><br />
+<input type="text" id="roomInput" placeholder="Room ID" /><button id="joinBtn">Join Room</button>
+
+<div id="chat"></div>
+
+<input type="text" id="messageInput" placeholder="Type message..." disabled />
+<button id="sendBtn" disabled>Send</button>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+
+  let room = '';
+  const joinBtn = document.getElementById('joinBtn');
+  const roomInput = document.getElementById('roomInput');
+  const chat = document.getElementById('chat');
+  const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  joinBtn.onclick = () => {
+    room = roomInput.value.trim();
+    if(room) {
+      socket.emit('join_room', room);
+      chat.innerHTML = `<p><em>Joined room: ${room}</em></p>`;
+      messageInput.disabled = false;
+      sendBtn.disabled = false;
+      roomInput.disabled = true;
+      joinBtn.disabled = true;
+    }
+  };
+
+  sendBtn.onclick = () => {
+    const msg = messageInput.value.trim();
+    if(msg) {
+      socket.emit('chat_message', { room, message: msg });
+      messageInput.value = '';
+    }
+  };
+
+  socket.on('chat_message', (msg) => {
+    const p = document.createElement('p');
+    p.textContent = msg;
+    chat.appendChild(p);
+    chat.scrollTop = chat.scrollHeight;
+  });
+</script>
+
+</body>
+</html>
