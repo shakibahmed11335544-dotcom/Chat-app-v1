@@ -7,7 +7,18 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "socket.io": "^4.7.1"
-  }
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shakibahmed11335544-dotcom/Chat-app-v1.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shakibahmed11335544-dotcom/Chat-app-v1/issues"
+  },
+  "homepage": "https://github.com/shakibahmed11335544-dotcom/Chat-app-v1#readme"
 }
