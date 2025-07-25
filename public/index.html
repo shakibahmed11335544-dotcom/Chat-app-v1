@@ -2,20 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Private Chat App with Video Call</title>
+  <title>Private Chat App with Video/Audio Call</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; }
     #chat { border: 1px solid #ccc; height: 200px; overflow-y: scroll; padding: 10px; margin-bottom: 10px;}
     #messageInput { width: 70%; padding: 10px; }
     #sendBtn { padding: 10px 20px; }
-    #videoContainer { display: flex; justify-content: space-between; margin-top: 20px; }
-    video { width: 48%; border: 1px solid #ccc; }
-    #startCallBtn { margin-top: 10px; padding: 10px 20px; }
+    #callControls { margin-top: 10px; }
+    video { width: 48%; background: black; margin-top: 10px; }
+    #localVideo { transform: scaleX(-1); } /* Mirror for local preview */
   </style>
 </head>
 <body>
 
-<h2>Private Chat App with Video Call</h2>
+<h2>Private Chat App with Video/Audio Call</h2>
 
 <label for="roomInput">Enter Room ID (e.g. user1_user2):</label><br />
 <input type="text" id="roomInput" placeholder="Room ID" />
@@ -26,31 +26,44 @@
 <input type="text" id="messageInput" placeholder="Type message..." disabled />
 <button id="sendBtn" disabled>Send</button>
 
-<button id="startCallBtn" disabled>Start Call</button>
-
-<div id="videoContainer">
-  <video id="localVideo" autoplay muted></video>
-  <video id="remoteVideo" autoplay></video>
+<div id="callControls" style="display:none;">
+  <button id="startCallBtn">Start Call</button>
+  <button id="hangupBtn" disabled>Hang Up</button>
 </div>
+
+<!-- Video elements for local and remote streams -->
+<video id="localVideo" autoplay muted playsinline></video>
+<video id="remoteVideo" autoplay playsinline></video>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
   const socket = io();
 
-  let room = '';
-  let localStream;
-  let peerConnection;
-  const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-
+  // UI elements
   const joinBtn = document.getElementById('joinBtn');
   const roomInput = document.getElementById('roomInput');
   const chat = document.getElementById('chat');
   const messageInput = document.getElementById('messageInput');
   const sendBtn = document.getElementById('sendBtn');
+  const callControls = document.getElementById('callControls');
   const startCallBtn = document.getElementById('startCallBtn');
+  const hangupBtn = document.getElementById('hangupBtn');
+
   const localVideo = document.getElementById('localVideo');
   const remoteVideo = document.getElementById('remoteVideo');
 
+  let room = '';
+  let localStream = null;
+  let peerConnection = null;
+
+  // STUN server config
+  const configuration = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' }
+    ]
+  };
+
+  // Join room and enable chat
   joinBtn.onclick = () => {
     room = roomInput.value.trim();
     if(room) {
@@ -60,10 +73,11 @@
       sendBtn.disabled = false;
       roomInput.disabled = true;
       joinBtn.disabled = true;
-      startCallBtn.disabled = false;
+      callControls.style.display = 'block'; // show call buttons
     }
   };
 
+  // Chat send button
   sendBtn.onclick = () => {
     const msg = messageInput.value.trim();
     if(msg) {
@@ -72,6 +86,7 @@
     }
   };
 
+  // Receive chat messages
   socket.on('chat_message', (msg) => {
     const p = document.createElement('p');
     p.textContent = msg;
@@ -79,77 +94,88 @@
     chat.scrollTop = chat.scrollHeight;
   });
 
+  // Handle signaling data from server
+  socket.on('signal', async (data) => {
+    if(!peerConnection) return;
+
+    if(data.sdp) {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+      if(data.sdp.type === 'offer') {
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        socket.emit('signal', { room, sdp: peerConnection.localDescription });
+      }
+    } else if(data.candidate) {
+      try {
+        await peerConnection.addIceCandidate(data.candidate);
+      } catch(e) {
+        console.error('Error adding ICE candidate', e);
+      }
+    }
+  });
+
+  // Start call button handler
   startCallBtn.onclick = async () => {
     startCallBtn.disabled = true;
+    hangupBtn.disabled = false;
+
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localVideo.srcObject = localStream;
 
-      peerConnection = new RTCPeerConnection(config);
+      createPeerConnection();
+
       localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-      peerConnection.ontrack = event => {
-        remoteVideo.srcObject = event.streams[0];
-      };
-
-      peerConnection.onicecandidate = event => {
-        if(event.candidate) {
-          socket.emit('ice_candidate', { room, candidate: event.candidate });
-        }
-      };
 
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
-      socket.emit('video_offer', { room, sdp: offer });
+
+      socket.emit('signal', { room, sdp: peerConnection.localDescription });
+
     } catch (err) {
       console.error('Error accessing media devices.', err);
       alert('Could not access camera/microphone.');
       startCallBtn.disabled = false;
+      hangupBtn.disabled = true;
     }
   };
 
-  socket.on('video_offer', async ({ sdp }) => {
-    if(!peerConnection) {
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        localVideo.srcObject = localStream;
+  // Hangup call button
+  hangupBtn.onclick = () => {
+    if(peerConnection) {
+      peerConnection.close();
+      peerConnection = null;
+    }
+    if(localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      localStream = null;
+      localVideo.srcObject = null;
+      remoteVideo.srcObject = null;
+    }
+    startCallBtn.disabled = false;
+    hangupBtn.disabled = true;
+  };
 
-        peerConnection = new RTCPeerConnection(config);
-        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+  // Create peer connection and set handlers
+  function createPeerConnection() {
+    peerConnection = new RTCPeerConnection(configuration);
 
-        peerConnection.ontrack = event => {
-          remoteVideo.srcObject = event.streams[0];
-        };
-
-        peerConnection.onicecandidate = event => {
-          if(event.candidate) {
-            socket.emit('ice_candidate', { room, candidate: event.candidate });
-          }
-        };
-      } catch (err) {
-        console.error('Error accessing media devices.', err);
-        alert('Could not access camera/microphone.');
-        return;
+    peerConnection.onicecandidate = event => {
+      if(event.candidate) {
+        socket.emit('signal', { room, candidate: event.candidate });
       }
-    }
+    };
 
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-    socket.emit('video_answer', { room, sdp: answer });
-  });
+    peerConnection.ontrack = event => {
+      remoteVideo.srcObject = event.streams[0];
+    };
 
-  socket.on('video_answer', async ({ sdp }) => {
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
-  });
-
-  socket.on('ice_candidate', async ({ candidate }) => {
-    try {
-      await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-    } catch (e) {
-      console.error(e);
-    }
-  });
+    peerConnection.onconnectionstatechange = () => {
+      if(peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed' || peerConnection.connectionState === 'closed') {
+        hangupBtn.onclick(); // auto hang up on disconnect
+      }
+    };
+  }
 </script>
 
 </body>
