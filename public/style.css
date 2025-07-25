@@ -1,0 +1,124 @@
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 500px;
+  margin: 20px auto;
+  padding: 10px;
+  background: #f0f8ff;
+  color: #333;
+}
+
+h1 {
+  text-align: center;
+  color: #2c3e50;
+}
+
+#roomSelection {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+#roomInput {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  border: 2px solid #3498db;
+  border-radius: 5px 0 0 5px;
+  outline: none;
+}
+
+#joinBtn {
+  background-color: #3498db;
+  border: none;
+  color: white;
+  padding: 0 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 0 5px 5px 0;
+  transition: background-color 0.3s ease;
+}
+
+#joinBtn:hover {
+  background-color: #2980b9;
+}
+
+.hidden {
+  display: none;
+}
+
+#chatContainer {
+  border: 1px solid #3498db;
+  padding: 10px;
+  height: 200px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  background: white;
+  border-radius: 5px;
+}
+
+#chatBox p {
+  margin: 5px 0;
+}
+
+#messageInput {
+  width: calc(100% - 60px);
+  padding: 10px;
+  font-size: 16px;
+  border: 2px solid #3498db;
+  border-radius: 5px 0 0 5px;
+  outline: none;
+}
+
+#sendBtn {
+  padding: 10px 20px;
+  border: none;
+  background-color: #3498db;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 0 5px 5px 0;
+  transition: background-color 0.3s ease;
+}
+
+#sendBtn:hover {
+  background-color: #2980b9;
+}
+
+#callControls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+#callControls button {
+  padding: 10px 15px;
+  font-size: 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: #27ae60;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+
+#callControls button:hover {
+  background-color: #1e8449;
+}
+
+#endCallBtn {
+  background-color: #e74c3c !important;
+}
+
+#videos {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+#videos video {
+  width: 45%;
+  border-radius: 10px;
+  background: black;
+}
