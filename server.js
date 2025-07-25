@@ -1,51 +1,40 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
-
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
 
-// Serve static files (e.g., index.html)
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public'));
 
-// Socket.io logic
-io.on('connection', (socket) => {
-  console.log('A user connected');
+io.on('connection', socket => {
+  console.log('a user connected:', socket.id);
 
-  socket.on('join_room', (room) => {
+  socket.on('join_room', room => {
     socket.join(room);
-    console.log(`User joined room: ${room}`);
+    console.log(`User ${socket.id} joined room ${room}`);
   });
 
-  socket.on('chat_message', (data) => {
-    io.to(data.room).emit('chat_message', data.message);
+  socket.on('chat_message', ({ room, message }) => {
+    socket.to(room).emit('chat_message', message);
   });
 
-  socket.on('ready', (room) => {
-    socket.to(room).emit('ready');
+  socket.on('video_offer', ({ room, sdp }) => {
+    socket.to(room).emit('video_offer', { sdp });
   });
 
-  socket.on('offer', (data) => {
-    socket.to(data.room).emit('offer', data);
+  socket.on('video_answer', ({ room, sdp }) => {
+    socket.to(room).emit('video_answer', { sdp });
   });
 
-  socket.on('answer', (data) => {
-    socket.to(data.room).emit('answer', data);
-  });
-
-  socket.on('ice_candidate', (data) => {
-    socket.to(data.room).emit('ice_candidate', data);
+  socket.on('ice_candidate', ({ room, candidate }) => {
+    socket.to(room).emit('ice_candidate', { candidate });
   });
 
   socket.on('disconnect', () => {
-    console.log('A user disconnected');
+    console.log('user disconnected:', socket.id);
   });
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+http.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
 });
