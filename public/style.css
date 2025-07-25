@@ -1,124 +1,231 @@
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  max-width: 500px;
-  margin: 20px auto;
-  padding: 10px;
-  background: #f0f8ff;
-  color: #333;
+/* General reset and body styles */
+* {
+  box-sizing: border-box;
 }
 
-h1 {
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #121212;
+  color: #f1f1f1;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+#app {
+  width: 100%;
+  max-width: 480px;
+  background: #1f1f1f;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(0,0,0,0.7);
+  padding: 15px 20px;
+  display: flex;
+  flex-direction: column;
+  height: 95vh;
+}
+
+header {
   text-align: center;
-  color: #2c3e50;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #333;
+}
+
+header h1 {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.8rem;
+  color: #08f;
+  letter-spacing: 1.5px;
+}
+
+#userIdDisplay {
+  margin-top: 5px;
+  font-size: 0.85rem;
+  color: #ccc;
+  font-style: italic;
 }
 
 #roomSelection {
   display: flex;
-  justify-content: center;
-  margin-bottom: 15px;
+  margin-top: 20px;
+  gap: 10px;
 }
 
-#roomInput {
+#roomSelection input {
   flex: 1;
-  padding: 10px;
-  font-size: 16px;
-  border: 2px solid #3498db;
-  border-radius: 5px 0 0 5px;
-  outline: none;
-}
-
-#joinBtn {
-  background-color: #3498db;
+  padding: 12px;
+  border-radius: 8px;
   border: none;
-  color: white;
-  padding: 0 20px;
-  font-size: 16px;
-  cursor: pointer;
-  border-radius: 0 5px 5px 0;
-  transition: background-color 0.3s ease;
+  font-size: 1rem;
+  background: #2a2a2a;
+  color: #eee;
+  outline: none;
+  transition: background 0.3s ease;
 }
 
-#joinBtn:hover {
-  background-color: #2980b9;
+#roomSelection input:focus {
+  background: #393939;
+}
+
+#roomSelection button {
+  padding: 12px 18px;
+  background: #0a84ff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+#roomSelection button:hover {
+  background: #0065d1;
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
-#chatContainer {
-  border: 1px solid #3498db;
-  padding: 10px;
-  height: 200px;
+#chatSection {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  margin-top: 20px;
+}
+
+#chatWindow {
+  flex-grow: 1;
+  background: #2a2a2a;
+  border-radius: 8px;
+  padding: 12px;
   overflow-y: auto;
-  margin-bottom: 10px;
-  background: white;
-  border-radius: 5px;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  color: #ccc;
+  box-shadow: inset 0 0 8px #000;
 }
 
-#chatBox p {
-  margin: 5px 0;
+#chatWindow p {
+  margin: 6px 0;
+}
+
+#chatWindow p.system {
+  font-style: italic;
+  color: #888;
+  text-align: center;
+}
+
+#messageInputArea {
+  display: flex;
+  margin-top: 10px;
+  gap: 10px;
 }
 
 #messageInput {
-  width: calc(100% - 60px);
-  padding: 10px;
-  font-size: 16px;
-  border: 2px solid #3498db;
-  border-radius: 5px 0 0 5px;
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #393939;
+  color: white;
+  font-size: 1rem;
   outline: none;
+  transition: background 0.3s ease;
+}
+
+#messageInput:focus {
+  background: #4a4a4a;
 }
 
 #sendBtn {
-  padding: 10px 20px;
+  padding: 12px 18px;
+  background: #08f;
   border: none;
-  background-color: #3498db;
+  border-radius: 8px;
   color: white;
-  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  border-radius: 0 5px 5px 0;
-  transition: background-color 0.3s ease;
+  transition: background 0.3s ease;
 }
 
 #sendBtn:hover {
-  background-color: #2980b9;
+  background: #0065d1;
 }
 
 #callControls {
+  margin-top: 15px;
   display: flex;
+  gap: 12px;
   justify-content: center;
-  gap: 10px;
-  margin-bottom: 10px;
 }
 
 #callControls button {
-  padding: 10px 15px;
-  font-size: 15px;
+  flex: 1;
+  padding: 12px 10px;
+  font-weight: 700;
   border: none;
-  border-radius: 5px;
+  border-radius: 10px;
   cursor: pointer;
-  background-color: #27ae60;
+  transition: background 0.3s ease;
+  background: #08f;
   color: white;
-  transition: background-color 0.3s ease;
 }
 
 #callControls button:hover {
-  background-color: #1e8449;
+  background: #005bbb;
 }
 
-#endCallBtn {
-  background-color: #e74c3c !important;
+.video-container {
+  position: relative;
+  margin-top: 15px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 0 10px #000;
 }
 
-#videos {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin-top: 10px;
+.video-container video {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 12px;
 }
 
-#videos video {
-  width: 45%;
-  border-radius: 10px;
-  background: black;
+.video-label {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  background: rgba(0,0,0,0.5);
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  color: #0af;
+  border-radius: 4px;
+}
+
+@media (max-width: 480px) {
+  #app {
+    height: 100vh;
+    border-radius: 0;
+    padding: 15px 10px;
+  }
+  #roomSelection {
+    flex-direction: column;
+  }
+  #roomSelection button {
+    width: 100%;
+  }
+  #messageInputArea {
+    flex-direction: column;
+  }
+  #sendBtn {
+    width: 100%;
+  }
+  #callControls {
+    flex-direction: column;
+  }
+  #callControls button {
+    width: 100%;
+  }
 }

@@ -15,12 +15,12 @@ io.on('connection', (socket) => {
     console.log(`User ${socket.id} joined room ${room}`);
   });
 
+  socket.on('chat_message', ({ room, message }) => {
+    socket.to(room).emit('chat_message', message);
+  });
+
   socket.on('signal', (data) => {
-    // যিনি পাঠাচ্ছেন তাকে বাদ দিয়ে সবাইকে signal পাঠাও
-    socket.to(data.room).emit('signal', {
-      from: socket.id,
-      signal: data.signal,
-    });
+    socket.to(data.room).emit('signal', data);
   });
 
   socket.on('disconnect', () => {

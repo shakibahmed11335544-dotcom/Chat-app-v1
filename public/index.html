@@ -3,236 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Private Video & Audio Chat</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 10px;
-      background: #f0f4f8;
-      color: #333;
-      max-width: 480px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    #localVideo, #remoteVideo {
-      width: 100%;
-      height: auto;
-      background: black;
-      border-radius: 8px;
-      margin-bottom: 10px;
-    }
-    #controls {
-      display: flex;
-      justify-content: space-around;
-      margin-bottom: 10px;
-    }
-    button {
-      padding: 10px 15px;
-      border: none;
-      background: #007bff;
-      color: white;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    button:disabled {
-      background: #999;
-      cursor: not-allowed;
-    }
-    input[type="text"] {
-      width: calc(100% - 110px);
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    #joinRoomDiv {
-      margin-bottom: 15px;
-    }
-    #chat {
-      border: 1px solid #ccc;
-      height: 120px;
-      overflow-y: auto;
-      padding: 10px;
-      background: white;
-      border-radius: 8px;
-      margin-bottom: 15px;
-    }
-    #messageInput {
-      width: 80%;
-      padding: 10px;
-      font-size: 16px;
-    }
-    #sendBtn {
-      padding: 10px 15px;
-      font-size: 16px;
-    }
-  </style>
+  <title>ChatPrivately - Video & Audio Call</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<h2>Private Video & Audio Chat</h2>
+  <div id="app">
 
-<div id="joinRoomDiv">
-  <input type="text" id="roomInput" placeholder="Enter Room ID" />
-  <button id="joinBtn">Join Room</button>
-</div>
+    <header>
+      <h1>ChatPrivately</h1>
+      <div id="userIdDisplay"></div>
+    </header>
 
-<video id="localVideo" autoplay muted playsinline></video>
-<video id="remoteVideo" autoplay playsinline></video>
+    <section id="roomSelection">
+      <input type="text" id="roomInput" placeholder="Enter Room ID (e.g. user1_user2)" />
+      <button id="joinBtn">Join Room</button>
+    </section>
 
-<div id="controls">
-  <button id="audioCallBtn" disabled>Start Audio Call</button>
-  <button id="videoCallBtn" disabled>Start Video Call</button>
-</div>
+    <section id="chatSection" class="hidden">
+      <div id="chatWindow"></div>
 
-<div id="chat"></div>
-<input type="text" id="messageInput" placeholder="Type message..." disabled />
-<button id="sendBtn" disabled>Send</button>
+      <div id="messageInputArea">
+        <input type="text" id="messageInput" placeholder="Type a message..." />
+        <button id="sendBtn">Send</button>
+      </div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  const socket = io();
+      <div id="callControls">
+        <button id="startAudioCallBtn">Audio Call</button>
+        <button id="startVideoCallBtn">Video Call</button>
+        <button id="hangupBtn" class="hidden">Hang Up</button>
+      </div>
 
-  const roomInput = document.getElementById('roomInput');
-  const joinBtn = document.getElementById('joinBtn');
-  const audioCallBtn = document.getElementById('audioCallBtn');
-  const videoCallBtn = document.getElementById('videoCallBtn');
+      <div id="localVideoContainer" class="video-container hidden">
+        <video id="localVideo" autoplay muted playsinline></video>
+        <span class="video-label">You</span>
+      </div>
 
-  const localVideo = document.getElementById('localVideo');
-  const remoteVideo = document.getElementById('remoteVideo');
+      <div id="remoteVideoContainer" class="video-container hidden">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <span class="video-label">Partner</span>
+      </div>
 
-  const chat = document.getElementById('chat');
-  const messageInput = document.getElementById('messageInput');
-  const sendBtn = document.getElementById('sendBtn');
+    </section>
 
-  let localStream = null;
-  let peerConnection = null;
-  let isAudioOnly = false;
-  let room = null;
+  </div>
 
-  const configuration = {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" }
-    ]
-  };
-
-  joinBtn.onclick = async () => {
-    room = roomInput.value.trim();
-    if (!room) {
-      alert('Please enter a room ID');
-      return;
-    }
-    socket.emit('join_room', room);
-    joinBtn.disabled = true;
-    roomInput.disabled = true;
-    audioCallBtn.disabled = false;
-    videoCallBtn.disabled = false;
-    messageInput.disabled = false;
-    sendBtn.disabled = false;
-
-    appendChatMessage(`You joined room: ${room}`);
-  };
-
-  audioCallBtn.onclick = () => {
-    isAudioOnly = true;
-    startCall();
-  };
-
-  videoCallBtn.onclick = () => {
-    isAudioOnly = false;
-    startCall();
-  };
-
-  sendBtn.onclick = () => {
-    const msg = messageInput.value.trim();
-    if (msg) {
-      appendChatMessage(`You: ${msg}`);
-      socket.emit('signal', { room, signal: { type: 'chat_message', message: msg } });
-      messageInput.value = '';
-    }
-  };
-
-  socket.on('signal', async (data) => {
-    if (data.signal.type === 'chat_message') {
-      appendChatMessage(`Peer: ${data.signal.message}`);
-      return;
-    }
-    if (!peerConnection) {
-      createPeerConnection();
-    }
-    try {
-      if (data.signal.type === 'offer') {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.signal));
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-        socket.emit('signal', { room, signal: peerConnection.localDescription });
-      } else if (data.signal.type === 'answer') {
-        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.signal));
-      } else if (data.signal.candidate) {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(data.signal.candidate));
-      }
-    } catch (error) {
-      console.error('Error handling signal:', error);
-    }
-  });
-
-  async function startCall() {
-    if (peerConnection) {
-      peerConnection.close();
-      peerConnection = null;
-    }
-
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({
-        video: !isAudioOnly,
-        audio: true
-      });
-      localVideo.srcObject = localStream;
-
-      createPeerConnection();
-
-      localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream);
-      });
-
-      if (room) {
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        socket.emit('signal', { room, signal: offer });
-      }
-    } catch (err) {
-      alert('Could not get media devices: ' + err.message);
-    }
-  }
-
-  function createPeerConnection() {
-    peerConnection = new RTCPeerConnection(configuration);
-
-    peerConnection.onicecandidate = event => {
-      if (event.candidate) {
-        socket.emit('signal', { room, signal: { candidate: event.candidate } });
-      }
-    };
-
-    peerConnection.ontrack = event => {
-      remoteVideo.srcObject = event.streams[0];
-    };
-
-    peerConnection.onconnectionstatechange = () => {
-      if (peerConnection.connectionState === 'connected') {
-        appendChatMessage('Connected!');
-      }
-    };
-  }
-
-  function appendChatMessage(msg) {
-    const p = document.createElement('p');
-    p.textContent = msg;
-    chat.appendChild(p);
-    chat.scrollTop = chat.scrollHeight;
-  }
-</script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
 
 </body>
 </html>
