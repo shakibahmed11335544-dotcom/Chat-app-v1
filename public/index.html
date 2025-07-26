@@ -1,416 +1,59 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Private Chat App - WhatsApp Style</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat App</title>
   <style>
-    /* === Reset & Basic Styles === */
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: #f0f2f5;
-      color: #222;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-    /* Dark Mode */
-    body.dark {
-      background: #121b22;
-      color: #e1e8ed;
-    }
-
-    /* === Join Screen === */
-    #joinScreen {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: #fff;
-      transition: opacity 0.3s ease;
-    }
-    body.dark #joinScreen {
-      background: #1f2c37;
-    }
-    #joinScreen.hidden {
-      opacity: 0;
-      pointer-events: none;
-      height: 0;
-      overflow: hidden;
-    }
-    #joinScreen h1 {
-      font-size: 2rem;
-      margin-bottom: 1rem;
-    }
-    #joinRoomInput {
-      padding: 0.75rem 1rem;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 20px;
-      width: 280px;
-      outline: none;
-      margin-bottom: 1rem;
-      transition: border-color 0.3s ease;
-    }
-    #joinRoomInput:focus {
-      border-color: #3b82f6;
-    }
-    #joinBtn {
-      background-color: #3b82f6;
-      color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 20px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    #joinBtn:hover:not(:disabled) {
-      background-color: #2563eb;
-    }
-    #joinBtn:disabled {
-      background-color: #a5b4fc;
-      cursor: default;
-    }
-
-    /* === Main Chat UI === */
-    #chatApp {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      max-height: 100vh;
-      background: white;
-      border-left: 1px solid #ddd;
-      transition: background-color 0.3s ease;
-    }
-    body.dark #chatApp {
-      background: #15202b;
-      border-color: #2f3941;
-    }
-    #chatApp.hidden {
-      display: none;
-    }
-
-    /* === Header === */
-    #chatHeader {
-      padding: 1rem;
-      border-bottom: 1px solid #ddd;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #f5f5f5;
-    }
-    body.dark #chatHeader {
-      background: #192734;
-      border-color: #2f3941;
-    }
-    #chatHeader h2 {
-      margin: 0;
-      font-size: 1.25rem;
-    }
-    #darkModeToggle {
-      cursor: pointer;
-      font-size: 1.5rem;
-      user-select: none;
-      color: #555;
-    }
-    body.dark #darkModeToggle {
-      color: #ddd;
-    }
-
-    /* === Messages Area === */
-    #messagesContainer {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      background: #e5ddd5;
-    }
-    body.dark #messagesContainer {
-      background: #192734;
-    }
-    #messages {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-
-    /* === Message bubbles === */
-    .message {
-      max-width: 70%;
-      padding: 0.5rem 0.75rem;
-      border-radius: 15px;
-      line-height: 1.3;
-      font-size: 0.95rem;
-      position: relative;
-      word-wrap: break-word;
-      box-shadow: 0 1px 1px rgb(0 0 0 / 0.1);
-    }
-    .message.self {
-      background: #dcf8c6;
-      align-self: flex-end;
-      border-bottom-right-radius: 3px;
-    }
-    body.dark .message.self {
-      background: #054640;
-    }
-    .message.friend {
-      background: #fff;
-      align-self: flex-start;
-      border-bottom-left-radius: 3px;
-    }
-    body.dark .message.friend {
-      background: #22303c;
-    }
-
-    /* Timestamp under message */
-    .message time {
-      display: block;
-      font-size: 0.7rem;
-      color: #999;
-      margin-top: 0.2rem;
-      text-align: right;
-    }
-    body.dark .message time {
-      color: #b0bec5;
-    }
-
-    /* === Typing indicator === */
-    #typingIndicator {
-      text-align: left;
-      font-style: italic;
-      color: #666;
-      margin-left: 10px;
-      font-size: 0.85rem;
-      min-height: 20px;
-    }
-    body.dark #typingIndicator {
-      color: #a0aebf;
-    }
-
-    /* === Input area === */
-    #inputContainer {
-      padding: 0.5rem 1rem;
-      border-top: 1px solid #ddd;
-      display: flex;
-      gap: 0.5rem;
-      background: #f9f9f9;
-    }
-    body.dark #inputContainer {
-      background: #15202b;
-      border-color: #2f3941;
-    }
-    #messageInput {
-      flex: 1;
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      border-radius: 20px;
-      border: 1px solid #ccc;
-      outline: none;
-      transition: border-color 0.3s ease;
-    }
-    #messageInput:focus {
-      border-color: #3b82f6;
-    }
-    body.dark #messageInput {
-      background: #22303c;
-      border-color: #446073;
-      color: #e1e8ed;
-    }
-    #sendBtn {
-      background-color: #3b82f6;
-      border: none;
-      color: white;
-      padding: 0 1.5rem;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background-color 0.3s ease;
-    }
-    #sendBtn:hover:not(:disabled) {
-      background-color: #2563eb;
-    }
-    #sendBtn:disabled {
-      background-color: #a5b4fc;
-      cursor: default;
-    }
-
-    /* === Video call UI === */
-    #videoSection {
-      display: none;
-      position: fixed;
-      bottom: 90px;
-      right: 20px;
-      width: 320px;
-      height: 240px;
-      background: #000;
-      border-radius: 8px;
-      box-shadow: 0 0 12px rgb(0 0 0 / 0.4);
-      z-index: 1000;
-      overflow: hidden;
-    }
-    #videoSection.visible {
-      display: block;
-    }
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      background: #000;
-    }
-    #videoControls {
-      position: absolute;
-      bottom: 5px;
-      left: 0;
-      right: 0;
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      padding: 5px 0;
-      background: rgba(0,0,0,0.4);
-    }
-    #videoControls button {
-      background: #3b82f6;
-      border: none;
-      color: white;
-      padding: 0.4rem 0.7rem;
-      border-radius: 20px;
-      cursor: pointer;
-      font-size: 1.2rem;
-      transition: background-color 0.3s ease;
-    }
-    #videoControls button:hover {
-      background: #2563eb;
-    }
-    #videoControls button:disabled {
-      background: #a5b4fc;
-      cursor: default;
-    }
-
-    /* Responsive */
-    @media (max-width: 600px) {
-      #messages {
-        max-width: 100%;
-      }
-      #videoSection {
-        width: 100vw;
-        height: 40vh;
-        bottom: 0;
-        right: 0;
-        border-radius: 0;
-      }
-    }
+    body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
+    .hidden { display: none; }
+    #chat-app { margin-top: 20px; }
+    #messages { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background: #fff; }
+    #message-input { width: 70%; padding: 5px; }
+    #send-btn, #join-btn, #start-audio-call-btn, #start-video-call-btn { padding: 5px 10px; margin: 5px; }
+    #typing-status { font-style: italic; color: gray; margin-top: 5px; }
+    #user-count { margin-bottom: 10px; color: #333; }
   </style>
 </head>
 <body>
   <!-- Join Screen -->
-  <div id="joinScreen">
-    <h1>Join a Room</h1>
-    <input id="joinRoomInput" type="text" placeholder="Enter room ID" autocomplete="off" />
-    <button id="joinBtn">Join</button>
+  <div id="join-screen">
+    <h2>Join a Room</h2>
+    <input type="text" id="join-room-input" placeholder="Enter Room ID" />
+    <button id="join-btn">Join</button>
   </div>
 
-  <!-- Main Chat App -->
-  <div id="chatApp" class="hidden">
-    <header id="chatHeader">
-      <h2>Private Chat</h2>
-      <span id="darkModeToggle" title="Toggle Dark Mode">🌙</span>
-    </header>
-
-    <div id="messagesContainer">
-      <div id="messages"></div>
-      <div id="typingIndicator"></div>
-    </div>
-
-    <div id="inputContainer">
-      <input id="messageInput" type="text" placeholder="Type a message" autocomplete="off" disabled />
-      <button id="sendBtn" disabled>Send</button>
-    </div>
-
-    <div id="videoSection">
-      <video id="remoteVideo" autoplay playsinline></video>
-      <video id="localVideo" autoplay muted playsinline
-             style="width: 100px; height: 75px; position: absolute; bottom: 5px; right: 5px; border: 2px solid white; border-radius: 5px;">
-      </video>
-      <div id="videoControls">
-        <button id="startAudioCallBtn">Audio Call</button>
-        <button id="startVideoCallBtn">Video Call</button>
-        <button id="muteCallBtn" disabled>🔇 Mute</button>
-        <button id="endCallBtn" disabled>End Call</button>
-      </div>
-    </div>
+  <!-- Chat App -->
+  <div id="chat-app" class="hidden">
+    <h2>Chat Room</h2>
+    <div id="user-count">Users connected: 1</div>
+    <div id="messages"></div>
+    <div id="typing-status"></div>
+    <input type="text" id="message-input" placeholder="Type a message" disabled />
+    <button id="send-btn" disabled>Send</button>
+    <br />
+    <button id="start-audio-call-btn" disabled>Start Audio Call</button>
+    <button id="start-video-call-btn" disabled>Start Video Call</button>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
+    const joinScreen = document.getElementById('join-screen');
+    const chatApp = document.getElementById('chat-app');
+    const joinRoomInput = document.getElementById('join-room-input');
+    const joinBtn = document.getElementById('join-btn');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    const messages = document.getElementById('messages');
+    const startAudioCallBtn = document.getElementById('start-audio-call-btn');
+    const startVideoCallBtn = document.getElementById('start-video-call-btn');
+    const typingStatus = document.getElementById('typing-status');
+    const userCount = document.getElementById('user-count');
 
-    // Elements
-    const joinScreen = document.getElementById('joinScreen');
-    const joinRoomInput = document.getElementById('joinRoomInput');
-    const joinBtn = document.getElementById('joinBtn');
-    const chatApp = document.getElementById('chatApp');
-    const messagesDiv = document.getElementById('messages');
-    const typingIndicator = document.getElementById('typingIndicator');
-    const messageInput = document.getElementById('messageInput');
-    const sendBtn = document.getElementById('sendBtn');
-    const darkModeToggle = document.getElementById('darkModeToggle');
-
-    const videoSection = document.getElementById('videoSection');
-    const localVideo = document.getElementById('localVideo');
-    const remoteVideo = document.getElementById('remoteVideo');
-    const startAudioCallBtn = document.getElementById('startAudioCallBtn');
-    const startVideoCallBtn = document.getElementById('startVideoCallBtn');
-    const muteCallBtn = document.getElementById('muteCallBtn');
-    const endCallBtn = document.getElementById('endCallBtn');
-
-    // State
-    let room = '';
-    let localStream = null;
-    let peerConnection = null;
-    let isAudioMuted = false;
-    let isTyping = false;
-    let typingTimeout = null;
-    let messageBuffer = [];
-
-    // WebRTC configuration
-    const configuration = {
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    };
-
-    // ======= Dark Mode Auto-load =======
-    // Load dark mode from localStorage or system preference
-    function loadDarkMode() {
-      const saved = localStorage.getItem('darkMode');
-      if (saved !== null) {
-        if (saved === 'true') {
-          document.body.classList.add('dark');
-          darkModeToggle.textContent = '☀️';
-        }
-      } else {
-        // Check system preference
-        if(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches){
-          document.body.classList.add('dark');
-          darkModeToggle.textContent = '☀️';
-        }
-      }
-    }
-    loadDarkMode();
-
-    // Toggle dark mode button
-    darkModeToggle.addEventListener('click', () => {
-      document.body.classList.toggle('dark');
-      const isDark = document.body.classList.contains('dark');
-      darkModeToggle.textContent = isDark ? '☀️' : '🌙';
-      localStorage.setItem('darkMode', isDark);
-    });
+    let room = null;
+    let typingTimeout;
 
     // ======= Join Room =======
     joinBtn.addEventListener('click', () => {
@@ -430,137 +73,88 @@
 
       messageInput.disabled = false;
       sendBtn.disabled = false;
-
       startAudioCallBtn.disabled = false;
       startVideoCallBtn.disabled = false;
 
       loadPreviousMessages();
     });
 
-    // ======= Messaging =======
-    sendBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keyup', e => {
-      if (e.key === 'Enter') sendMessage();
-    });
-
-    messageInput.addEventListener('input', () => {
-      if (!isTyping) {
-        isTyping = true;
-        socket.emit('typing', { room, typing: true });
-        resetTypingTimeout();
-      } else {
-        resetTypingTimeout();
+    // ENTER দিয়ে Join
+    joinRoomInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        joinBtn.click();
       }
     });
 
-    function resetTypingTimeout() {
-      if (typingTimeout) clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(() => {
-        isTyping = false;
-        socket.emit('typing', { room, typing: false });
-      }, 2000);
-    }
-
-    function sendMessage() {
+    // ======= Sending Message =======
+    sendBtn.addEventListener('click', () => {
       const msg = messageInput.value.trim();
       if (!msg) return;
-
-      socket.emit('chat_message', { room, message: msg });
-      addMessage(msg, true);
+      socket.emit('send_message', { room, message: msg });
+      addMessage(`You: ${msg}`, true);
       messageInput.value = '';
-    }
-
-    socket.on('chat_message', (msg) => {
-      addMessage(msg, false);
     });
 
-    // ======= Add message UI =======
-    function addMessage(msg, self = false) {
-      const messageDiv = document.createElement('div');
-      messageDiv.classList.add('message');
-      if (self) {
-        messageDiv.classList.add('self');
-        messageDiv.textContent = msg;
+    // ENTER দিয়ে Message
+    messageInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        sendBtn.click();
       } else {
-        messageDiv.classList.add('friend');
-        messageDiv.textContent = msg;
-      }
-      const timeElem = document.createElement('time');
-      const now = new Date();
-      timeElem.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      messageDiv.appendChild(timeElem);
-
-      messagesDiv.appendChild(messageDiv);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-
-      saveMessageToBuffer(msg, self);
-    }
-
-    // ======= Offline Message Buffer (localStorage) =======
-    function loadPreviousMessages() {
-      if (!room) return;
-      const savedMsgs = localStorage.getItem(`messages_${room}`);
-      if (savedMsgs) {
-        messageBuffer = JSON.parse(savedMsgs);
-        messageBuffer.forEach(({text, self}) => addMessage(text, self));
-      }
-    }
-
-    function saveMessageToBuffer(text, self) {
-      messageBuffer.push({text, self});
-      localStorage.setItem(`messages_${room}`, JSON.stringify(messageBuffer));
-    }
-
-    // ======= Typing Indicator =======
-    socket.on('typing', (data) => {
-      if (data.room === room) {
-        typingIndicator.textContent = data.typing ? 'Friend is typing...' : '';
+        socket.emit('typing', room);
       }
     });
 
-    // ======= WebRTC Call Functions =======
-    startAudioCallBtn.addEventListener('click', () => startCall(false));
-    startVideoCallBtn.addEventListener('click', () => startCall(true));
-    muteCallBtn.addEventListener('click', toggleMute);
-    endCallBtn.addEventListener('click', endCall);
+    socket.on('receive_message', (data) => {
+      addMessage(`Stranger: ${data.message}`);
+    });
 
-    async function startCall(withVideo) {
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: withVideo });
-        localVideo.srcObject = localStream;
+    function addMessage(msg, isOwn = false) {
+      const msgEl = document.createElement('div');
+      const time = new Date().toLocaleTimeString();
+      msgEl.textContent = `[${time}] ${msg}`;
+      msgEl.style.color = isOwn ? '#007bff' : '#000';
+      messages.appendChild(msgEl);
+      messages.scrollTop = messages.scrollHeight;
+    }
 
-        peerConnection = new RTCPeerConnection(configuration);
-        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+    function loadPreviousMessages() {
+      // future: load from backend if needed
+    }
 
-        peerConnection.ontrack = (event) => {
-          remoteVideo.srcObject = event.streams[0];
-        };
+    // ===== Typing Indicator =====
+    socket.on('typing', () => {
+      typingStatus.textContent = 'Stranger is typing...';
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        typingStatus.textContent = '';
+      }, 2000);
+    });
 
-        peerConnection.onicecandidate = (event) => {
-          if (event.candidate) {
-            socket.emit('signal', { room, candidate: event.candidate });
-          }
-        };
+    // ===== User Join/Leave =====
+    socket.on('user_joined', (count) => {
+      const joinMsg = document.createElement('div');
+      joinMsg.textContent = `🔔 A user has joined the chat.`;
+      joinMsg.style.color = 'green';
+      messages.appendChild(joinMsg);
+      userCount.textContent = `Users connected: ${count}`;
+    });
 
-        peerConnection.onconnectionstatechange = () => {
-          if (peerConnection.connectionState === 'connected') {
-            console.log('Peers connected');
-          }
-          if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
-            endCall();
-          }
-        };
+    socket.on('user_left', (count) => {
+      const leaveMsg = document.createElement('div');
+      leaveMsg.textContent = `❌ A user has left the chat.`;
+      leaveMsg.style.color = 'red';
+      messages.appendChild(leaveMsg);
+      userCount.textContent = `Users connected: ${count}`;
+    });
 
-        videoSection.classList.add('visible');
-        muteCallBtn.disabled = false;
-        endCallBtn.disabled = false;
-        startAudioCallBtn.disabled = true;
-        startVideoCallBtn.disabled = true;
+    // ===== Dummy Audio/Video Call Buttons =====
+    startAudioCallBtn.addEventListener('click', () => {
+      alert('🔊 Audio call started (demo)');
+    });
 
-        // Create offer and send
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        socket.emit('signal', { room, sdp: peerConnection.localDescription });
-      } catch (err) {
-        alert('Error accessing media devices: ' + err.message);
-        console.error(err);
+    startVideoCallBtn.addEventListener('click', () => {
+      alert('🎥 Video call started (demo)');
+    });
+  </script>
+</body>
+</html>
