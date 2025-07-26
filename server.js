@@ -7,13 +7,15 @@ const path = require('path');
 const fs = require('fs');
 
 const port = process.env.PORT || 3000;
+
+// Serve static files
 app.use(express.static('public'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Ensure uploads directory exists
+// Ensure uploads folder exists
 if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
 
-// Multer setup for file upload
+// Multer config for file upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
@@ -25,6 +27,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
   res.json({ url: '/uploads/' + req.file.filename });
 });
 
+// Socket.IO handlers
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
@@ -51,4 +54,4 @@ io.on('connection', (socket) => {
   });
 });
 
-http.listen(port, () => console.log(`Server listening on port ${port}`));
+http.listen(port, () => console.log(`Server running at http://localhost:${port}`));
