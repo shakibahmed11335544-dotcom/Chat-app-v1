@@ -35,17 +35,6 @@ const configuration = {
   ]
 };
 
-// ===== Auto detect system dark mode on page load =====
-window.addEventListener('load', () => {
-  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  if (prefersDark) {
-    document.body.classList.add('dark');
-    toggleThemeBtn.textContent = '☀️'; // dark mode হলে সূর্যের আইকন দেখাবে
-  } else {
-    toggleThemeBtn.textContent = '🌙'; // light mode হলে চাঁদের আইকন দেখাবে
-  }
-});
-
 // Join room event
 joinBtn.addEventListener('click', () => {
   room = roomInput.value.trim();
@@ -65,6 +54,13 @@ joinBtn.addEventListener('click', () => {
   startVideoCallBtn.disabled = false;
 
   loadPreviousMessages();
+});
+
+// Enter key press এ join করার জন্য (PC ও মোবাইলে কাজ করবে)
+roomInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    joinBtn.click();
+  }
 });
 
 // Send message handlers
@@ -245,4 +241,15 @@ function saveMessageToBuffer(msg) {
 toggleThemeBtn.addEventListener('click', () => {
   document.body.classList.toggle('dark');
   toggleThemeBtn.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+});
+
+// =============== Auto enable dark mode on load ==================
+
+window.addEventListener('load', () => {
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    document.body.classList.add('dark');
+    toggleThemeBtn.textContent = '☀️';
+  } else {
+    toggleThemeBtn.textContent = '🌙';
+  }
 });
