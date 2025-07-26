@@ -1,7 +1,7 @@
 {
-  "name": "private-chat-video-app",
-  "version": "1.1.0",
-  "description": "Private Chat App with Video/Audio Call, Emoji, File Sharing",
+  "name": "chat-app-v2",
+  "version": "1.0.0",
+  "description": "WhatsApp-like Chat App with Realtime Messaging, Emoji, File Sharing, and WebRTC Calls",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

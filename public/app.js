@@ -4,6 +4,7 @@ let messageBuffer = {};
 let isTyping = false;
 let typingTimeout;
 
+// UI Elements
 const chatListScreen = document.getElementById('chat-list-screen');
 const chatScreen = document.getElementById('chat-screen');
 const chatList = document.getElementById('chat-list');
@@ -18,12 +19,21 @@ const toggleThemeBtn = document.getElementById('toggle-theme-btn');
 const fileBtn = document.getElementById('file-btn');
 const fileInput = document.getElementById('file-input');
 
+// Video Call Elements
+const audioCallBtn = document.getElementById('audio-call-btn');
+const videoCallBtn = document.getElementById('video-call-btn');
+const callContainer = document.getElementById('video-call-container');
+const localVideo = document.getElementById('localVideo');
+const remoteVideo = document.getElementById('remoteVideo');
+const endCallBtn = document.getElementById('end-call-btn');
+let localStream, peerConnection;
+
 // Theme toggle
 toggleThemeBtn.addEventListener('click', () => {
   document.body.classList.toggle('light');
 });
 
-// Load previous chats
+// Load chats
 if(localStorage.getItem('chatRooms')) {
   messageBuffer = JSON.parse(localStorage.getItem('chatRooms'));
   Object.keys(messageBuffer).forEach(r => addChatToList(r));
@@ -42,11 +52,9 @@ addChatBtn.addEventListener('click', () => {
 // Emoji picker
 const picker = new EmojiButton();
 document.getElementById('emoji-btn').addEventListener('click', () => picker.togglePicker(messageInput));
-picker.on('emoji', emoji => {
-  messageInput.value += emoji;
-});
+picker.on('emoji', emoji => messageInput.value += emoji);
 
-// Open chat
+// Chat open
 function addChatToList(room) {
   const div = document.createElement('div');
   div.className = 'chat-item';
@@ -68,7 +76,7 @@ backBtn.addEventListener('click', () => {
   chatListScreen.classList.remove('hidden');
 });
 
-// Send text message
+// Send message
 sendBtn.addEventListener('click', sendMessage);
 messageInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') sendMessage();
@@ -153,4 +161,36 @@ socket.on('message_status', data => {
     lastMsg.status = 'delivered';
     saveMessages();
   }
+});
+
+// Video call (WebRTC)
+async function startCall(video = false) {
+  callContainer.classList.remove('hidden');
+  localStream = await navigator.mediaDevices.getUserMedia({ video, audio: true });
+  localVideo.srcObject = localStream;
+
+  peerConnection = new RTCPeerConnection();
+  localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+  peerConnection.ontrack = (event) => remoteVideo.srcObject = event.streams[0];
+
+  const offer = await peerConnection.createOffer();
+  await peerConnection.setLocalDescription(offer);
+  socket.emit('signal', { room: currentRoom, sdp: peerConnection.localDescription });
+
+  socket.on('signal', async (data) => {
+    if (data.sdp) {
+      await peerConnection.setRemoteDescription(data.sdp);
+      if (data.sdp.type === 'offer') {
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        socket.emit('signal', { room: currentRoom, sdp: peerConnection.localDescription });
+      }
+    }
+  });
+}
+audioCallBtn.addEventListener('click', () => startCall(false));
+videoCallBtn.addEventListener('click', () => startCall(true));
+endCallBtn.addEventListener('click', () => {
+  callContainer.classList.add('hidden');
+  peerConnection.close();
 });

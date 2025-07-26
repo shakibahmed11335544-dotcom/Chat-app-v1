@@ -8,7 +8,6 @@ const fs = require('fs');
 
 const port = process.env.PORT || 3000;
 
-// Serve static files
 app.use(express.static('public'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -22,18 +21,17 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// API for file upload
+// Upload endpoint
 app.post('/upload', upload.single('file'), (req, res) => {
   res.json({ url: '/uploads/' + req.file.filename });
 });
 
-// Socket.IO handlers
+// Socket.IO events
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
   socket.on('join_room', (room) => {
     socket.join(room);
-    console.log(`User ${socket.id} joined room ${room}`);
   });
 
   socket.on('chat_message', ({ room, message, type }) => {
@@ -41,12 +39,13 @@ io.on('connection', (socket) => {
     socket.emit('message_status', { status: 'delivered', message });
   });
 
-  socket.on('typing', (data) => {
-    socket.to(data.room).emit('typing', data);
-  });
-
+  // WebRTC signaling
   socket.on('signal', (data) => {
     socket.to(data.room).emit('signal', data);
+  });
+
+  socket.on('typing', (data) => {
+    socket.to(data.room).emit('typing', data);
   });
 
   socket.on('disconnect', () => {
