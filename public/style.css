@@ -1,24 +1,24 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Segoe UI', sans-serif; background: #111; color: #fff; }
-.screen { height: 100vh; display: flex; flex-direction: column; }
-.hidden { display: none; }
-header { padding: 10px; background: #1f1f1f; display: flex; justify-content: space-between; align-items: center; }
-header h2 { font-size: 1.2rem; }
-header button { background: none; border: none; font-size: 1.5rem; color: #fff; cursor: pointer; }
-#chat-list { flex: 1; overflow-y: auto; }
-.chat-item { padding: 15px; border-bottom: 1px solid #333; cursor: pointer; }
-.chat-item:hover { background: #222; }
-#messages { flex: 1; padding: 10px; overflow-y: auto; background: #0d0d0d; }
-.message { max-width: 75%; padding: 8px 12px; margin-bottom: 8px; border-radius: 10px; position: relative; }
-.message.self { background: #056162; margin-left: auto; }
-.message.other { background: #262626; margin-right: auto; }
-.message img, .message video { max-width: 200px; border-radius: 8px; margin-top: 5px; }
-.message time { font-size: 0.7rem; opacity: 0.6; position: absolute; bottom: -15px; right: 10px; }
-.message-status { font-size: 0.8rem; margin-left: 5px; opacity: 0.7; }
-.input-area { display: flex; background: #1f1f1f; padding: 8px; }
-.input-area input[type="text"] { flex: 1; padding: 10px; border: none; border-radius: 20px; outline: none; background: #2b2b2b; color: #fff; }
-.input-area button { background: none; border: none; font-size: 1.5rem; color: #fff; margin-left: 5px; cursor: pointer; }
-#typing-indicator { font-style: italic; color: #aaa; padding: 5px 10px; }
-#video-call-container { position: fixed; top:0; left:0; width:100%; height:100%; background:#000; display:flex; flex-direction:column; justify-content:center; align-items:center; }
-#video-call-container video { width: 80%; max-height: 40%; margin: 10px; background: #000; }
-#end-call-btn { padding: 10px 20px; background: red; color:#fff; border:none; cursor:pointer; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Segoe UI,sans-serif;background:#111;color:#fff}
+.screen{height:100vh;display:flex;flex-direction:column}
+.hidden{display:none}
+header{padding:10px;background:#1f1f1f;display:flex;justify-content:space-between;align-items:center}
+header h2{font-size:1.2rem}
+header button{background:none;border:none;font-size:1.5rem;color:#fff;cursor:pointer}
+#chat-list{flex:1;overflow-y:auto}
+.chat-item{padding:15px;border-bottom:1px solid #333;cursor:pointer}
+.chat-item:hover{background:#222}
+#messages{flex:1;padding:10px;overflow-y:auto;background:#0d0d0d}
+.message{max-width:75%;padding:8px 12px;margin-bottom:8px;border-radius:10px;position:relative}
+.message.self{background:#056162;margin-left:auto}
+.message.other{background:#262626;margin-right:auto}
+.message img,.message video{max-width:200px;border-radius:8px;margin-top:5px}
+.message time{font-size:.7rem;opacity:.6;position:absolute;bottom:-15px;right:10px}
+.message-status{font-size:.8rem;margin-left:5px;opacity:.7}
+.input-area{display:flex;background:#1f1f1f;padding:8px}
+.input-area input[type=text]{flex:1;padding:10px;border:none;border-radius:20px;outline:none;background:#2b2b2b;color:#fff}
+.input-area button{background:none;border:none;font-size:1.5rem;color:#fff;margin-left:5px;cursor:pointer}
+#typing-indicator{font-style:italic;color:#aaa;padding:5px 10px}
+#video-call-container{position:fixed;top:0;left:0;width:100%;height:100%;background:#000;display:flex;flex-direction:column;justify-content:center;align-items:center}
+#video-call-container video{width:80%;max-height:40%;margin:10px;background:#000}
+#end-call-btn{padding:10px 20px;background:red;color:#fff;border:none;cursor:pointer}

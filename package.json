@@ -1,7 +1,7 @@
 {
   "name": "chat-app-v2",
   "version": "1.0.0",
-  "description": "WhatsApp-like Chat App with Realtime Messaging, Emoji, File Sharing, and WebRTC Calls",
+  "description": "Realtime Chat App with Messaging, Emoji, File Sharing & WebRTC Calls",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
