@@ -9,24 +9,9 @@
   "dependencies": {
     "express": "^4.21.2",
     "socket.io": "^4.8.1",
-    "multer": "^1.4.5"
+    "multer": "1.4.5-lts.1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/shakibahmed11335544-dotcom/Chat-app-v1.git"
-  },
-  "keywords": [
-    "chat",
-    "video-call",
-    "socket.io",
-    "express",
-    "emoji",
-    "file-sharing"
-  ],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/shakibahmed11335544-dotcom/Chat-app-v1/issues"
-  },
-  "homepage": "https://github.com/shakibahmed11335544-dotcom/Chat-app-v1#readme"
+  "engines": {
+    "node": ">=18.x"
+  }
 }
