@@ -17,26 +17,44 @@ const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
 
 const toggleThemeBtn = document.getElementById('toggleThemeBtn');
+const typingIndicator = document.createElement('p');
+typingIndicator.id = 'typingIndicator';
+chatMessages.parentNode.insertBefore(typingIndicator, chatMessages.nextSibling);
 
 let localStream = null;
 let peerConnection = null;
 let room = '';
 let isAudioMuted = false;
+let isTyping = false;
+let typingTimeout = null;
 
 const configuration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    // আপনি চাইলে অন্য stun/turn সার্ভারও যোগ করতে পারেন
+    // প্রয়োজনে TURN সার্ভার যোগ করতে পারো
   ]
 };
 
+// ===== Auto detect system dark mode on page load =====
+window.addEventListener('load', () => {
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (prefersDark) {
+    document.body.classList.add('dark');
+    toggleThemeBtn.textContent = '☀️'; // dark mode হলে সূর্যের আইকন দেখাবে
+  } else {
+    toggleThemeBtn.textContent = '🌙'; // light mode হলে চাঁদের আইকন দেখাবে
+  }
+});
+
+// Join room event
 joinBtn.addEventListener('click', () => {
   room = roomInput.value.trim();
-  if (room.length === 0) {
+  if (!room) {
     alert('Please enter a room ID');
     return;
   }
   socket.emit('join_room', room);
+
   joinBtn.disabled = true;
   roomInput.disabled = true;
 
@@ -49,32 +67,48 @@ joinBtn.addEventListener('click', () => {
   loadPreviousMessages();
 });
 
+// Send message handlers
 sendBtn.addEventListener('click', sendMessage);
 messageInput.addEventListener('keyup', (e) => {
   if (e.key === 'Enter') sendMessage();
 });
 
+messageInput.addEventListener('input', () => {
+  if (!isTyping) {
+    isTyping = true;
+    socket.emit('typing', { room, typing: true });
+    typingTimeout = setTimeout(stopTyping, 2000);
+  } else {
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(stopTyping, 2000);
+  }
+});
+
+function stopTyping() {
+  isTyping = false;
+  socket.emit('typing', { room, typing: false });
+}
+
 function sendMessage() {
   const msg = messageInput.value.trim();
-  if (msg.length === 0) return;
+  if (!msg) return;
 
   socket.emit('chat_message', { room, message: msg });
-  addMessage(`You: ${msg}`);
+  addMessage(`You: ${msg}`, true);
   messageInput.value = '';
 }
 
-socket.on('chat_message', (msg) => {
-  addMessage(`Friend: ${msg}`);
-});
-
-function addMessage(msg) {
+// Add message to UI and save to localStorage buffer
+function addMessage(msg, self = false) {
   const p = document.createElement('p');
   p.textContent = msg;
+  p.classList.toggle('self', self);
   chatMessages.appendChild(p);
   chatMessages.scrollTop = chatMessages.scrollHeight;
+  saveMessageToBuffer(msg);
 }
 
-// =================== WebRTC Signaling ===================
+// ================== WebRTC Call Functions ==================
 
 startAudioCallBtn.addEventListener('click', () => startCall(false));
 startVideoCallBtn.addEventListener('click', () => startCall(true));
@@ -116,14 +150,13 @@ async function startCall(video = true) {
     startAudioCallBtn.disabled = true;
     startVideoCallBtn.disabled = true;
 
-    // Create offer
+    // Create and send offer
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
-
     socket.emit('signal', { room, sdp: peerConnection.localDescription });
-  } catch (error) {
-    alert('Error accessing media devices.');
-    console.error(error);
+  } catch (err) {
+    alert('Error accessing media devices');
+    console.error(err);
   }
 }
 
@@ -142,6 +175,7 @@ async function endCall() {
 
   startAudioCallBtn.disabled = false;
   startVideoCallBtn.disabled = false;
+
   remoteVideo.srcObject = null;
   localVideo.srcObject = null;
   isAudioMuted = false;
@@ -155,7 +189,7 @@ function toggleMute() {
   muteCallBtn.textContent = isAudioMuted ? '🔈 Unmute' : '🔇 Mute';
 }
 
-// =================== Socket signaling handler ===================
+// ================= Socket signaling handler ==================
 
 socket.on('signal', async (data) => {
   if (!peerConnection) return;
@@ -176,20 +210,25 @@ socket.on('signal', async (data) => {
   }
 });
 
-// =============== Dark mode toggle ===============
+// =============== Typing indicator ==================
 
-toggleThemeBtn.addEventListener('click', () => {
-  document.body.classList.toggle('dark');
-  toggleThemeBtn.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+socket.on('typing', (data) => {
+  if (data.room === room) {
+    typingIndicator.textContent = data.typing ? 'Friend is typing...' : '';
+  }
 });
 
-// ============== Offline message buffer (optional) ==============
+// =============== Chat message listener ==================
+
+socket.on('chat_message', (msg) => {
+  addMessage(`Friend: ${msg}`);
+});
+
+// =============== Offline message buffer ==================
 
 let messageBuffer = [];
 
 function loadPreviousMessages() {
-  // যেহেতু সার্ভারে message history নাই, তাই ব্রাউজারে রাখছি।
-  // রিলোডের পর আগে লেখা ম্যাসেজ দেখা যাবে।
   if (localStorage.getItem(room)) {
     messageBuffer = JSON.parse(localStorage.getItem(room));
     messageBuffer.forEach(msg => addMessage(msg));
@@ -201,10 +240,9 @@ function saveMessageToBuffer(msg) {
   localStorage.setItem(room, JSON.stringify(messageBuffer));
 }
 
-function addMessage(msg) {
-  const p = document.createElement('p');
-  p.textContent = msg;
-  chatMessages.appendChild(p);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-  saveMessageToBuffer(msg);
-}
+// =============== Dark mode toggle ==================
+
+toggleThemeBtn.addEventListener('click', () => {
+  document.body.classList.toggle('dark');
+  toggleThemeBtn.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+});
