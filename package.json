@@ -1,17 +1,13 @@
 {
-  "name": "whatsapp-clone",
+  "name": "private-chat-video-app",
   "version": "1.0.0",
-  "description": "Chat Privately",
-  "main": "server.js",
+  "description": "Private Chat App with Video/Audio Call",
+  "main": "app.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node app.js"
   },
   "dependencies": {
-    "express": "^4.21.2",
-    "socket.io": "^4.8.1",
-    "multer": "1.4.5-lts.1"
-  },
-  "engines": {
-    "node": ">=18.x"
+    "express": "^4.18.2",
+    "socket.io": "^4.7.1"
   }
 }
