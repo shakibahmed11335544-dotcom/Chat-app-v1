@@ -1,255 +1,156 @@
 const socket = io();
-
-const roomInput = document.getElementById('roomInput');
-const joinBtn = document.getElementById('joinBtn');
-const chatSection = document.getElementById('chatSection');
-const chatMessages = document.getElementById('chatMessages');
-const messageInput = document.getElementById('messageInput');
-const sendBtn = document.getElementById('sendBtn');
-
-const startAudioCallBtn = document.getElementById('startAudioCallBtn');
-const startVideoCallBtn = document.getElementById('startVideoCallBtn');
-const endCallBtn = document.getElementById('endCallBtn');
-const muteCallBtn = document.getElementById('muteCallBtn');
-
-const videoSection = document.getElementById('videoSection');
-const localVideo = document.getElementById('localVideo');
-const remoteVideo = document.getElementById('remoteVideo');
-
-const toggleThemeBtn = document.getElementById('toggleThemeBtn');
-const typingIndicator = document.createElement('p');
-typingIndicator.id = 'typingIndicator';
-chatMessages.parentNode.insertBefore(typingIndicator, chatMessages.nextSibling);
-
-let localStream = null;
-let peerConnection = null;
-let room = '';
-let isAudioMuted = false;
+let currentRoom = null;
+let messageBuffer = {};
 let isTyping = false;
-let typingTimeout = null;
+let typingTimeout;
 
-const configuration = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    // প্রয়োজনে TURN সার্ভার যোগ করতে পারো
-  ]
-};
+const chatListScreen = document.getElementById('chat-list-screen');
+const chatScreen = document.getElementById('chat-screen');
+const chatList = document.getElementById('chat-list');
+const chatRoomName = document.getElementById('chat-room-name');
+const messages = document.getElementById('messages');
+const messageInput = document.getElementById('message-input');
+const sendBtn = document.getElementById('send-btn');
+const backBtn = document.getElementById('back-btn');
+const addChatBtn = document.getElementById('add-chat-btn');
+const typingIndicator = document.getElementById('typing-indicator');
+const toggleThemeBtn = document.getElementById('toggle-theme-btn');
+const fileBtn = document.getElementById('file-btn');
+const fileInput = document.getElementById('file-input');
 
-// Join room event
-joinBtn.addEventListener('click', () => {
-  room = roomInput.value.trim();
-  if (!room) {
-    alert('Please enter a room ID');
-    return;
+// Theme toggle
+toggleThemeBtn.addEventListener('click', () => {
+  document.body.classList.toggle('light');
+});
+
+// Load previous chats
+if(localStorage.getItem('chatRooms')) {
+  messageBuffer = JSON.parse(localStorage.getItem('chatRooms'));
+  Object.keys(messageBuffer).forEach(r => addChatToList(r));
+}
+
+// Add new chat
+addChatBtn.addEventListener('click', () => {
+  const room = prompt('Enter Host ID:');
+  if (room && !messageBuffer[room]) {
+    messageBuffer[room] = [];
+    saveMessages();
+    addChatToList(room);
   }
+});
+
+// Emoji picker
+const picker = new EmojiButton();
+document.getElementById('emoji-btn').addEventListener('click', () => picker.togglePicker(messageInput));
+picker.on('emoji', emoji => {
+  messageInput.value += emoji;
+});
+
+// Open chat
+function addChatToList(room) {
+  const div = document.createElement('div');
+  div.className = 'chat-item';
+  div.textContent = room;
+  div.addEventListener('click', () => openChat(room));
+  chatList.appendChild(div);
+}
+function openChat(room) {
+  currentRoom = room;
+  chatRoomName.textContent = room;
+  messages.innerHTML = '';
+  (messageBuffer[room] || []).forEach(msg => addMessage(msg.text, msg.self, msg.time, msg.type, msg.status));
+  chatListScreen.classList.add('hidden');
+  chatScreen.classList.remove('hidden');
   socket.emit('join_room', room);
-
-  joinBtn.disabled = true;
-  roomInput.disabled = true;
-
-  chatSection.classList.remove('hidden');
-  messageInput.disabled = false;
-  sendBtn.disabled = false;
-  startAudioCallBtn.disabled = false;
-  startVideoCallBtn.disabled = false;
-
-  loadPreviousMessages();
+}
+backBtn.addEventListener('click', () => {
+  chatScreen.classList.add('hidden');
+  chatListScreen.classList.remove('hidden');
 });
 
-// Enter key press এ join করার জন্য (PC ও মোবাইলে কাজ করবে)
-roomInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    joinBtn.click();
-  }
-});
-
-// Send message handlers
+// Send text message
 sendBtn.addEventListener('click', sendMessage);
-messageInput.addEventListener('keyup', (e) => {
+messageInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') sendMessage();
+  else startTyping();
+});
+function sendMessage() {
+  const text = messageInput.value.trim();
+  if (!text) return;
+  const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  addMessage(text, true, time, 'text', 'sent');
+  socket.emit('chat_message', { room: currentRoom, message: text, type: 'text' });
+  messageInput.value = '';
+  saveMessages();
+}
+function addMessage(text, self = false, time = '', type='text', status='sent') {
+  const div = document.createElement('div');
+  div.className = `message ${self ? 'self' : 'other'}`;
+  if (type === 'text') div.innerHTML = `${text} <time>${time}</time>`;
+  if (type === 'image') div.innerHTML = `<img src="${text}"><time>${time}</time>`;
+  if (type === 'video') div.innerHTML = `<video controls src="${text}"></video><time>${time}</time>`;
+  if (self) {
+    const span = document.createElement('span');
+    span.className = 'message-status';
+    span.textContent = status === 'sent' ? '✓' : '✓✓';
+    div.appendChild(span);
+  }
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  if (currentRoom) {
+    messageBuffer[currentRoom].push({ text, self, time, type, status });
+    saveMessages();
+  }
+}
+function saveMessages() {
+  localStorage.setItem('chatRooms', JSON.stringify(messageBuffer));
+}
+
+// File upload
+fileBtn.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch('/upload', { method: 'POST', body: formData });
+  const data = await res.json();
+  const url = data.url;
+  const type = file.type.startsWith('video') ? 'video' : 'image';
+  const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  addMessage(url, true, time, type, 'sent');
+  socket.emit('chat_message', { room: currentRoom, message: url, type });
+  saveMessages();
 });
 
-messageInput.addEventListener('input', () => {
+// Typing indicator
+function startTyping() {
   if (!isTyping) {
+    socket.emit('typing', { room: currentRoom, typing: true });
     isTyping = true;
-    socket.emit('typing', { room, typing: true });
     typingTimeout = setTimeout(stopTyping, 2000);
   } else {
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(stopTyping, 2000);
   }
-});
-
+}
 function stopTyping() {
   isTyping = false;
-  socket.emit('typing', { room, typing: false });
+  socket.emit('typing', { room: currentRoom, typing: false });
 }
-
-function sendMessage() {
-  const msg = messageInput.value.trim();
-  if (!msg) return;
-
-  socket.emit('chat_message', { room, message: msg });
-  addMessage(`You: ${msg}`, true);
-  messageInput.value = '';
-}
-
-// Add message to UI and save to localStorage buffer
-function addMessage(msg, self = false) {
-  const p = document.createElement('p');
-  p.textContent = msg;
-  p.classList.toggle('self', self);
-  chatMessages.appendChild(p);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-  saveMessageToBuffer(msg);
-}
-
-// ================== WebRTC Call Functions ==================
-
-startAudioCallBtn.addEventListener('click', () => startCall(false));
-startVideoCallBtn.addEventListener('click', () => startCall(true));
-endCallBtn.addEventListener('click', endCall);
-muteCallBtn.addEventListener('click', toggleMute);
-
-async function startCall(video = true) {
-  try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
-    localVideo.srcObject = localStream;
-
-    peerConnection = new RTCPeerConnection(configuration);
-
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-    peerConnection.ontrack = (event) => {
-      remoteVideo.srcObject = event.streams[0];
-    };
-
-    peerConnection.onicecandidate = (event) => {
-      if (event.candidate) {
-        socket.emit('signal', { room, candidate: event.candidate });
-      }
-    };
-
-    peerConnection.onconnectionstatechange = () => {
-      if (peerConnection.connectionState === 'connected') {
-        console.log('Peers connected');
-      }
-      if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
-        endCall();
-      }
-    };
-
-    videoSection.classList.remove('hidden');
-    endCallBtn.classList.remove('hidden');
-    muteCallBtn.classList.remove('hidden');
-
-    startAudioCallBtn.disabled = true;
-    startVideoCallBtn.disabled = true;
-
-    // Create and send offer
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-    socket.emit('signal', { room, sdp: peerConnection.localDescription });
-  } catch (err) {
-    alert('Error accessing media devices');
-    console.error(err);
-  }
-}
-
-async function endCall() {
-  if (peerConnection) {
-    peerConnection.close();
-    peerConnection = null;
-  }
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop());
-    localStream = null;
-  }
-  videoSection.classList.add('hidden');
-  endCallBtn.classList.add('hidden');
-  muteCallBtn.classList.add('hidden');
-
-  startAudioCallBtn.disabled = false;
-  startVideoCallBtn.disabled = false;
-
-  remoteVideo.srcObject = null;
-  localVideo.srcObject = null;
-  isAudioMuted = false;
-  muteCallBtn.textContent = '🔇 Mute';
-}
-
-function toggleMute() {
-  if (!localStream) return;
-  isAudioMuted = !isAudioMuted;
-  localStream.getAudioTracks()[0].enabled = !isAudioMuted;
-  muteCallBtn.textContent = isAudioMuted ? '🔈 Unmute' : '🔇 Mute';
-}
-
-// ================= Socket signaling handler ==================
-
-socket.on('signal', async (data) => {
-  if (!peerConnection) return;
-
-  try {
-    if (data.sdp) {
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-      if (data.sdp.type === 'offer') {
-        const answer = await peerConnection.createAnswer();
-        await peerConnection.setLocalDescription(answer);
-        socket.emit('signal', { room, sdp: peerConnection.localDescription });
-      }
-    } else if (data.candidate) {
-      await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-    }
-  } catch (err) {
-    console.error('Error handling signal:', err);
-  }
+socket.on('typing', data => {
+  if (data.room === currentRoom) typingIndicator.textContent = data.typing ? 'Typing...' : '';
 });
 
-// =============== Typing indicator ==================
-
-socket.on('typing', (data) => {
-  if (data.room === room) {
-    typingIndicator.textContent = data.typing ? 'Friend is typing...' : '';
-  }
+// Receive message
+socket.on('chat_message', data => {
+  const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  addMessage(data.message, false, time, data.type);
 });
-
-// =============== Chat message listener ==================
-
-socket.on('chat_message', (msg) => {
-  addMessage(`Friend: ${msg}`);
-});
-
-// =============== Offline message buffer ==================
-
-let messageBuffer = [];
-
-function loadPreviousMessages() {
-  if (localStorage.getItem(room)) {
-    messageBuffer = JSON.parse(localStorage.getItem(room));
-    messageBuffer.forEach(msg => addMessage(msg));
-  }
-}
-
-function saveMessageToBuffer(msg) {
-  messageBuffer.push(msg);
-  localStorage.setItem(room, JSON.stringify(messageBuffer));
-}
-
-// =============== Dark mode toggle ==================
-
-toggleThemeBtn.addEventListener('click', () => {
-  document.body.classList.toggle('dark');
-  toggleThemeBtn.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
-});
-
-// =============== Auto enable dark mode on load ==================
-
-window.addEventListener('load', () => {
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.body.classList.add('dark');
-    toggleThemeBtn.textContent = '☀️';
-  } else {
-    toggleThemeBtn.textContent = '🌙';
+socket.on('message_status', data => {
+  const lastMsg = messageBuffer[currentRoom]?.slice(-1)[0];
+  if (lastMsg) {
+    lastMsg.status = 'delivered';
+    saveMessages();
   }
 });

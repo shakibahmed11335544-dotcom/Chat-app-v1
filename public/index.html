@@ -1,160 +1,49 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chat App</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
-    .hidden { display: none; }
-    #chat-app { margin-top: 20px; }
-    #messages { height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; background: #fff; }
-    #message-input { width: 70%; padding: 5px; }
-    #send-btn, #join-btn, #start-audio-call-btn, #start-video-call-btn { padding: 5px 10px; margin: 5px; }
-    #typing-status { font-style: italic; color: gray; margin-top: 5px; }
-    #user-count { margin-bottom: 10px; color: #333; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Clone</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <!-- Join Screen -->
-  <div id="join-screen">
-    <h2>Join a Room</h2>
-    <input type="text" id="join-room-input" placeholder="Enter Room ID" />
-    <button id="join-btn">Join</button>
-  </div>
+<body class="dark">
+  <div id="app">
+    <!-- Chat List -->
+    <div id="chat-list-screen" class="screen">
+      <header>
+        <h2>Chats</h2>
+        <div>
+          <button id="add-chat-btn">+</button>
+          <button id="toggle-theme-btn">🌙</button>
+        </div>
+      </header>
+      <div id="chat-list"></div>
+    </div>
 
-  <!-- Chat App -->
-  <div id="chat-app" class="hidden">
-    <h2>Chat Room</h2>
-    <div id="user-count">Users connected: 1</div>
-    <div id="messages"></div>
-    <div id="typing-status"></div>
-    <input type="text" id="message-input" placeholder="Type a message" disabled />
-    <button id="send-btn" disabled>Send</button>
-    <br />
-    <button id="start-audio-call-btn" disabled>Start Audio Call</button>
-    <button id="start-video-call-btn" disabled>Start Video Call</button>
+    <!-- Chat Window -->
+    <div id="chat-screen" class="screen hidden">
+      <header>
+        <button id="back-btn">←</button>
+        <h2 id="chat-room-name">Room</h2>
+        <div>
+          <button id="audio-call-btn">📞</button>
+          <button id="video-call-btn">🎥</button>
+        </div>
+      </header>
+      <div id="messages"></div>
+      <div id="typing-indicator"></div>
+      <div class="input-area">
+        <button id="emoji-btn">😊</button>
+        <input type="file" id="file-input" hidden>
+        <button id="file-btn">📎</button>
+        <input type="text" id="message-input" placeholder="Type a message">
+        <button id="send-btn">➤</button>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    const joinScreen = document.getElementById('join-screen');
-    const chatApp = document.getElementById('chat-app');
-    const joinRoomInput = document.getElementById('join-room-input');
-    const joinBtn = document.getElementById('join-btn');
-    const messageInput = document.getElementById('message-input');
-    const sendBtn = document.getElementById('send-btn');
-    const messages = document.getElementById('messages');
-    const startAudioCallBtn = document.getElementById('start-audio-call-btn');
-    const startVideoCallBtn = document.getElementById('start-video-call-btn');
-    const typingStatus = document.getElementById('typing-status');
-    const userCount = document.getElementById('user-count');
-
-    let room = null;
-    let typingTimeout;
-
-    // ======= Join Room =======
-    joinBtn.addEventListener('click', () => {
-      const roomId = joinRoomInput.value.trim();
-      if (!roomId) {
-        alert('Please enter a room ID');
-        return;
-      }
-      room = roomId;
-      socket.emit('join_room', room);
-
-      joinBtn.disabled = true;
-      joinRoomInput.disabled = true;
-
-      joinScreen.classList.add('hidden');
-      chatApp.classList.remove('hidden');
-
-      messageInput.disabled = false;
-      sendBtn.disabled = false;
-      startAudioCallBtn.disabled = false;
-      startVideoCallBtn.disabled = false;
-
-      loadPreviousMessages();
-    });
-
-    // ENTER দিয়ে Join
-    joinRoomInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        joinBtn.click();
-      }
-    });
-
-    // ======= Sending Message =======
-    sendBtn.addEventListener('click', () => {
-      const msg = messageInput.value.trim();
-      if (!msg) return;
-      socket.emit('send_message', { room, message: msg });
-      addMessage(`You: ${msg}`, true);
-      messageInput.value = '';
-    });
-
-    // ENTER দিয়ে Message
-    messageInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        sendBtn.click();
-      } else {
-        socket.emit('typing', room);
-      }
-    });
-
-    socket.on('receive_message', (data) => {
-      addMessage(`Stranger: ${data.message}`);
-    });
-
-    function addMessage(msg, isOwn = false) {
-      const msgEl = document.createElement('div');
-      const time = new Date().toLocaleTimeString();
-      msgEl.textContent = `[${time}] ${msg}`;
-      msgEl.style.color = isOwn ? '#007bff' : '#000';
-      messages.appendChild(msgEl);
-      messages.scrollTop = messages.scrollHeight;
-    }
-
-    function loadPreviousMessages() {
-      // future: load from backend if needed
-    }
-
-    // ===== Typing Indicator =====
-    socket.on('typing', () => {
-      typingStatus.textContent = 'Stranger is typing...';
-      clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(() => {
-        typingStatus.textContent = '';
-      }, 2000);
-    });
-
-    // ===== User Join/Leave =====
-    socket.on('user_joined', (count) => {
-      const joinMsg = document.createElement('div');
-      joinMsg.textContent = `🔔 A user has joined the chat.`;
-      joinMsg.style.color = 'green';
-      messages.appendChild(joinMsg);
-      userCount.textContent = `Users connected: ${count}`;
-    });
-
-    socket.on('user_left', (count) => {
-      const leaveMsg = document.createElement('div');
-      leaveMsg.textContent = `❌ A user has left the chat.`;
-      leaveMsg.style.color = 'red';
-      messages.appendChild(leaveMsg);
-      userCount.textContent = `Users connected: ${count}`;
-    });
-
-    // ===== Dummy Audio/Video Call Buttons =====
-    startAudioCallBtn.addEventListener('click', () => {
-      alert('🔊 Audio call started (demo)');
-    });
-
-    startVideoCallBtn.addEventListener('click', () => {
-      alert('🎥 Video call started (demo)');
-    });
-  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@4.6.4/dist/index.min.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
