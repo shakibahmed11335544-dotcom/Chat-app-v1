@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chat App</title>
+  <title>WhatsApp Clone</title>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body class="dark">
-  <div id="app">
+  <div id="join-screen">
+    <h2>Join a Host</h2>
+    <input type="text" id="join-input" placeholder="Enter Host ID"/>
+    <button id="join-btn">Join</button>
+  </div>
+
+  <div id="app" class="hidden">
     <!-- Chat List -->
     <div id="chat-list-screen" class="screen">
       <header>
@@ -34,7 +40,7 @@
       <div id="typing-indicator"></div>
       <div class="input-area">
         <button id="emoji-btn">😊</button>
-        <input type="file" id="file-input" hidden />
+        <input type="file" id="file-input" hidden/>
         <button id="file-btn">📎</button>
         <input type="text" id="message-input" placeholder="Type a message"/>
         <button id="send-btn">➤</button>
