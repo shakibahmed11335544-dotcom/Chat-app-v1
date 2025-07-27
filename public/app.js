@@ -21,11 +21,11 @@ const remoteVideo = document.getElementById('remoteVideo');
 const toggleThemeBtn = document.getElementById('toggleThemeBtn');
 const newRoomBtn = document.getElementById('newRoomBtn');
 
-// State
 let room = '';
 let peer = null;
 let localStream = null;
 let isAudioMuted = false;
+let callStartTime = null;
 
 // Room list
 socket.on('room_list', rooms => {
@@ -38,13 +38,11 @@ socket.on('room_list', rooms => {
   });
 });
 
-// New room
 newRoomBtn.addEventListener('click', () => {
   const newId = prompt("Enter new room ID:");
   if (newId) joinRoom(newId);
 });
 
-// Join room
 joinBtn.addEventListener('click', () => {
   const r = roomInput.value.trim();
   if (!r) return;
@@ -98,7 +96,8 @@ async function initCall(video = true) {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
     localVideo.srcObject = localStream;
-
+    callStartTime = Date.now();
+    socket.emit('call_status', { room, status: "Call started" });
     peer = new SimplePeer({
       initiator: true,
       trickle: false,
@@ -110,16 +109,13 @@ async function initCall(video = true) {
         ]
       }
     });
-
-    peer.on('signal', data => socket.emit('signal', { room, signal: data }));
+    peer.on('signal', data => socket.emit('call_signal', { room, signal: data }));
     peer.on('stream', stream => remoteVideo.srcObject = stream);
-    peer.on('error', err => console.error('Peer error:', err));
-
     uiCallStarted();
   } catch (err) { console.error("Error in initCall:", err); alert('Media error'); }
 }
 
-socket.on('signal', data => {
+socket.on('call_signal', data => {
   if (!peer) {
     peer = new SimplePeer({
       initiator: false,
@@ -132,16 +128,21 @@ socket.on('signal', data => {
         ]
       }
     });
-    peer.on('signal', sig => socket.emit('signal', { room, signal: sig }));
+    peer.on('signal', sig => socket.emit('call_signal', { room, signal: sig }));
     peer.on('stream', stream => remoteVideo.srcObject = stream);
-    peer.on('error', err => console.error('Peer error:', err));
   }
   peer.signal(data.signal);
+});
+
+socket.on('call_status', data => {
+  addMessage(`📞 ${data.status}`, 'friend');
 });
 
 function endCall() {
   if (peer) { peer.destroy(); peer = null; }
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+  const duration = Math.floor((Date.now() - callStartTime) / 1000);
+  socket.emit('call_status', { room, status: `Call ended. Duration: ${duration}s` });
   uiCallEnded();
 }
 
