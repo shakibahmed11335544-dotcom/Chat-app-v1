@@ -21,18 +21,10 @@ const remoteVideo = document.getElementById('remoteVideo');
 const toggleThemeBtn = document.getElementById('toggleThemeBtn');
 
 // State
-let localStream = null;
-let peerConnection = null;
 let room = '';
+let peer = null;
+let localStream = null;
 let isAudioMuted = false;
-
-// ICE + TURN
-const configuration = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'turn:numb.viagenie.ca', username: 'webrtc@live.com', credential: 'muazkh' }
-  ]
-};
 
 // Load available room list
 socket.on('room_list', rooms => {
@@ -90,63 +82,77 @@ function addMessage(msg, type) {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// ==================== WebRTC Call ====================
+// ==================== Simple-Peer Call ====================
 
-startAudioCallBtn.addEventListener('click', () => startCall(false));
-startVideoCallBtn.addEventListener('click', () => startCall(true));
+startAudioCallBtn.addEventListener('click', () => initCall(false));
+startVideoCallBtn.addEventListener('click', () => initCall(true));
 endCallBtn.addEventListener('click', endCall);
 muteCallBtn.addEventListener('click', toggleMute);
 
-async function startCall(video = true) {
+async function initCall(video = true) {
   try {
-    console.log("Starting call...");
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
     localVideo.srcObject = localStream;
 
-    createPeer(true); // caller
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+    peer = new SimplePeer({
+      initiator: true,
+      trickle: false,
+      stream: localStream,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'turn:numb.viagenie.ca', username: 'webrtc@live.com', credential: 'muazkh' }
+        ]
+      }
+    });
 
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-    console.log("Local offer created:", offer);
-    socket.emit('signal', { room, sdp: peerConnection.localDescription });
+    peer.on('signal', data => {
+      socket.emit('signal', { room, signal: data });
+    });
+
+    peer.on('stream', stream => {
+      remoteVideo.srcObject = stream;
+    });
+
+    peer.on('error', err => console.error('Peer error:', err));
+
     uiCallStarted();
-  } catch (err) { console.error("Error in startCall:", err); alert('Media error'); }
+  } catch (err) {
+    console.error("Error in initCall:", err);
+    alert('Media access denied or error!');
+  }
 }
 
-function createPeer(isCaller = false) {
-  peerConnection = new RTCPeerConnection(configuration);
-  console.log("RTCPeerConnection created. Caller:", isCaller);
+socket.on('signal', data => {
+  if (!peer) {
+    peer = new SimplePeer({
+      initiator: false,
+      trickle: false,
+      stream: localStream,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'turn:numb.viagenie.ca', username: 'webrtc@live.com', credential: 'muazkh' }
+        ]
+      }
+    });
 
-  peerConnection.ontrack = e => { 
-    console.log("Remote track received.");
-    remoteVideo.srcObject = e.streams[0]; 
-  };
+    peer.on('signal', signalData => {
+      socket.emit('signal', { room, signal: signalData });
+    });
 
-  peerConnection.onicecandidate = e => {
-    if (e.candidate) {
-      console.log("ICE candidate generated:", e.candidate);
-      socket.emit('signal', { room, candidate: e.candidate });
-    }
-  };
+    peer.on('stream', stream => {
+      remoteVideo.srcObject = stream;
+    });
 
-  peerConnection.onconnectionstatechange = () => {
-    console.log("Connection state:", peerConnection.connectionState);
-  };
+    peer.on('error', err => console.error('Peer error:', err));
+  }
 
-  // Caller renegotiation
-  peerConnection.onnegotiationneeded = async () => {
-    if (isCaller) {
-      console.log("Negotiation needed: creating new offer...");
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-      socket.emit('signal', { room, sdp: peerConnection.localDescription });
-    }
-  };
-}
+  peer.signal(data.signal);
+});
 
-async function endCall() {
-  if (peerConnection) { peerConnection.close(); peerConnection = null; }
+function endCall() {
+  if (peer) { peer.destroy(); peer = null; }
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
   uiCallEnded();
 }
@@ -157,31 +163,6 @@ function toggleMute() {
   localStream.getAudioTracks()[0].enabled = !isAudioMuted;
   muteCallBtn.textContent = isAudioMuted ? '🔈 Unmute' : '🔇 Mute';
 }
-
-// Signaling
-socket.on('signal', async data => {
-  console.log("Signal received:", data);
-  if (!peerConnection) {
-    createPeer(false);
-    if (localStream) localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-  }
-  if (data.sdp) {
-    console.log("Setting remote description:", data.sdp.type);
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-    if (data.sdp.type === 'offer') {
-      console.log("Creating answer...");
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-      console.log("Sending answer...");
-      socket.emit('signal', { room, sdp: peerConnection.localDescription });
-    }
-  } else if (data.candidate) {
-    try {
-      console.log("Adding remote ICE candidate");
-      await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-    } catch (e) { console.error("Error adding ICE candidate", e); }
-  }
-});
 
 // ==================== UI Helpers ====================
 function uiCallStarted() {
