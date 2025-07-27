@@ -6,30 +6,31 @@
   <title>Premium ChatApp</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
-<script src="app.js"></script>
 <body>
 <div class="app-container">
+  <!-- Sidebar -->
   <aside class="sidebar">
     <header class="sidebar-header">
       <h2>Chats</h2>
+      <button id="newRoomBtn">➕</button>
     </header>
     <ul id="roomList" class="room-list"></ul>
   </aside>
 
+  <!-- Main Chat -->
   <main class="chat-container">
     <header class="chat-header">
-      <h1 id="currentRoom">Select a chat</h1>
-      <div class="header-actions">
-        <button id="toggleThemeBtn">🌙</button>
-      </div>
+      <h1 id="currentRoom">Select or Join a Room</h1>
+      <button id="toggleThemeBtn">🌙</button>
     </header>
 
+    <!-- Join Room -->
     <section class="join-section" id="joinSection">
       <input type="text" id="roomInput" placeholder="Enter Room ID" />
       <button id="joinBtn">Join</button>
     </section>
 
+    <!-- Chat -->
     <section class="chat-section hidden" id="chatSection">
       <div id="chatMessages" class="chat-messages"></div>
 
@@ -38,6 +39,7 @@
         <button id="sendBtn" disabled>Send</button>
       </div>
 
+      <!-- Call Buttons -->
       <div class="call-buttons">
         <button id="startAudioCallBtn" disabled>📞 Audio</button>
         <button id="startVideoCallBtn" disabled>📹 Video</button>
@@ -45,6 +47,7 @@
         <button id="muteCallBtn" class="hidden">🔇 Mute</button>
       </div>
 
+      <!-- Video Area -->
       <div class="video-section hidden" id="videoSection">
         <video id="localVideo" autoplay muted playsinline></video>
         <video id="remoteVideo" autoplay playsinline></video>
@@ -54,6 +57,7 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/simple-peer@9.11.1/simplepeer.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

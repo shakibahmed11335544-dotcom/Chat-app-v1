@@ -1,6 +1,6 @@
 const socket = io();
 
-// DOM elements
+// DOM
 const roomList = document.getElementById('roomList');
 const roomInput = document.getElementById('roomInput');
 const joinBtn = document.getElementById('joinBtn');
@@ -19,6 +19,7 @@ const videoSection = document.getElementById('videoSection');
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
 const toggleThemeBtn = document.getElementById('toggleThemeBtn');
+const newRoomBtn = document.getElementById('newRoomBtn');
 
 // State
 let room = '';
@@ -26,7 +27,7 @@ let peer = null;
 let localStream = null;
 let isAudioMuted = false;
 
-// Load available room list
+// Room list
 socket.on('room_list', rooms => {
   roomList.innerHTML = '';
   rooms.forEach(r => {
@@ -35,6 +36,12 @@ socket.on('room_list', rooms => {
     li.addEventListener('click', () => joinRoom(r));
     roomList.appendChild(li);
   });
+});
+
+// New room
+newRoomBtn.addEventListener('click', () => {
+  const newId = prompt("Enter new room ID:");
+  if (newId) joinRoom(newId);
 });
 
 // Join room
@@ -55,7 +62,7 @@ function joinRoom(r) {
   startVideoCallBtn.disabled = false;
 }
 
-// Send chat
+// Chat
 sendBtn.addEventListener('click', sendMessage);
 messageInput.addEventListener('keyup', e => { if (e.key === 'Enter') sendMessage(); });
 
@@ -67,7 +74,6 @@ function sendMessage() {
   messageInput.value = '';
 }
 
-// Receive chat
 socket.on('chat_message', msg => addMessage(msg, 'friend'));
 socket.on('load_history', history => {
   chatMessages.innerHTML = '';
@@ -83,7 +89,6 @@ function addMessage(msg, type) {
 }
 
 // ==================== Simple-Peer Call ====================
-
 startAudioCallBtn.addEventListener('click', () => initCall(false));
 startVideoCallBtn.addEventListener('click', () => initCall(true));
 endCallBtn.addEventListener('click', endCall);
@@ -106,21 +111,12 @@ async function initCall(video = true) {
       }
     });
 
-    peer.on('signal', data => {
-      socket.emit('signal', { room, signal: data });
-    });
-
-    peer.on('stream', stream => {
-      remoteVideo.srcObject = stream;
-    });
-
+    peer.on('signal', data => socket.emit('signal', { room, signal: data }));
+    peer.on('stream', stream => remoteVideo.srcObject = stream);
     peer.on('error', err => console.error('Peer error:', err));
 
     uiCallStarted();
-  } catch (err) {
-    console.error("Error in initCall:", err);
-    alert('Media access denied or error!');
-  }
+  } catch (err) { console.error("Error in initCall:", err); alert('Media error'); }
 }
 
 socket.on('signal', data => {
@@ -136,18 +132,10 @@ socket.on('signal', data => {
         ]
       }
     });
-
-    peer.on('signal', signalData => {
-      socket.emit('signal', { room, signal: signalData });
-    });
-
-    peer.on('stream', stream => {
-      remoteVideo.srcObject = stream;
-    });
-
+    peer.on('signal', sig => socket.emit('signal', { room, signal: sig }));
+    peer.on('stream', stream => remoteVideo.srcObject = stream);
     peer.on('error', err => console.error('Peer error:', err));
   }
-
   peer.signal(data.signal);
 });
 
@@ -164,7 +152,7 @@ function toggleMute() {
   muteCallBtn.textContent = isAudioMuted ? '🔈 Unmute' : '🔇 Mute';
 }
 
-// ==================== UI Helpers ====================
+// UI
 function uiCallStarted() {
   videoSection.classList.remove('hidden');
   endCallBtn.classList.remove('hidden');
@@ -182,7 +170,6 @@ function uiCallEnded() {
   remoteVideo.srcObject = null;
 }
 
-// Theme toggle
 toggleThemeBtn.addEventListener('click', () => {
   document.body.classList.toggle('dark');
   toggleThemeBtn.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
