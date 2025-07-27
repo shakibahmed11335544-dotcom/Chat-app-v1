@@ -41,23 +41,20 @@
 
       <!-- Call Buttons -->
       <div class="call-buttons">
-        <button id="startAudioCallBtn" disabled>📞 Audio</button>
-        <button id="startVideoCallBtn" disabled>📹 Video</button>
+        <button id="startCallBtn" disabled>📞 Start Call</button>
         <button id="endCallBtn" class="hidden">❌ End</button>
-      </div>
-
-      <!-- Video Area -->
-      <div class="video-section hidden" id="videoSection">
-        <video id="localVideo" autoplay muted playsinline></video>
-        <video id="remoteVideo" autoplay playsinline></video>
       </div>
     </section>
   </main>
 </div>
 
-<!-- Scripts -->
+<!-- Video Call Modal -->
+<div id="callModal" class="call-modal">
+  <iframe id="dailyFrame" allow="camera; microphone; fullscreen; display-capture"></iframe>
+  <button id="closeModalBtn" class="close-modal">✖</button>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
-<script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
