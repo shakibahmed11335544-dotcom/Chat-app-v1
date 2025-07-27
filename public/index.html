@@ -3,48 +3,52 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Premium Private Chat & Call</title>
+  <title>Premium ChatApp</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <div class="app-container">
-  <header class="app-header">
-    <h1>ChatApp</h1>
-    <div class="header-actions">
-      <button id="toggleThemeBtn">🌙</button>
-      <button id="menuBtn" class="menu-btn">➕</button>
-      <div id="menuDropdown" class="dropdown hidden">
-        <button id="hostBtn">Host Room</button>
-        <button id="joinRoomBtn">Join Room</button>
+  <aside class="sidebar">
+    <header class="sidebar-header">
+      <h2>Chats</h2>
+    </header>
+    <ul id="roomList" class="room-list"></ul>
+  </aside>
+
+  <main class="chat-container">
+    <header class="chat-header">
+      <h1 id="currentRoom">Select a chat</h1>
+      <div class="header-actions">
+        <button id="toggleThemeBtn">🌙</button>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <section class="join-section" id="joinSection">
-    <input type="text" id="roomInput" placeholder="Enter Room ID (e.g. user1_user2)" />
-    <button id="joinBtn">Join</button>
-  </section>
+    <section class="join-section" id="joinSection">
+      <input type="text" id="roomInput" placeholder="Enter Room ID" />
+      <button id="joinBtn">Join</button>
+    </section>
 
-  <section class="chat-section hidden" id="chatSection">
-    <div id="chatMessages" class="chat-messages"></div>
+    <section class="chat-section hidden" id="chatSection">
+      <div id="chatMessages" class="chat-messages"></div>
 
-    <div class="message-input-area">
-      <input type="text" id="messageInput" placeholder="Type a message..." disabled />
-      <button id="sendBtn" disabled>Send</button>
-    </div>
+      <div class="message-input-area">
+        <input type="text" id="messageInput" placeholder="Type a message..." disabled />
+        <button id="sendBtn" disabled>Send</button>
+      </div>
 
-    <div class="call-buttons">
-      <button id="startAudioCallBtn" disabled>📞 Audio</button>
-      <button id="startVideoCallBtn" disabled>📹 Video</button>
-      <button id="endCallBtn" class="hidden">❌ End</button>
-      <button id="muteCallBtn" class="hidden">🔇 Mute</button>
-    </div>
+      <div class="call-buttons">
+        <button id="startAudioCallBtn" disabled>📞 Audio</button>
+        <button id="startVideoCallBtn" disabled>📹 Video</button>
+        <button id="endCallBtn" class="hidden">❌ End</button>
+        <button id="muteCallBtn" class="hidden">🔇 Mute</button>
+      </div>
 
-    <div class="video-section hidden" id="videoSection">
-      <video id="localVideo" autoplay muted playsinline></video>
-      <video id="remoteVideo" autoplay playsinline></video>
-    </div>
-  </section>
+      <div class="video-section hidden" id="videoSection">
+        <video id="localVideo" autoplay muted playsinline></video>
+        <video id="remoteVideo" autoplay playsinline></video>
+      </div>
+    </section>
+  </main>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>

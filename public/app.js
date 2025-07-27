@@ -1,7 +1,9 @@
 const socket = io();
 
+const roomList = document.getElementById('roomList');
 const roomInput = document.getElementById('roomInput');
 const joinBtn = document.getElementById('joinBtn');
+const currentRoom = document.getElementById('currentRoom');
 const chatSection = document.getElementById('chatSection');
 const chatMessages = document.getElementById('chatMessages');
 const messageInput = document.getElementById('messageInput');
@@ -15,12 +17,7 @@ const muteCallBtn = document.getElementById('muteCallBtn');
 const videoSection = document.getElementById('videoSection');
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
-
 const toggleThemeBtn = document.getElementById('toggleThemeBtn');
-const menuBtn = document.getElementById('menuBtn');
-const menuDropdown = document.getElementById('menuDropdown');
-const hostBtn = document.getElementById('hostBtn');
-const joinRoomBtn = document.getElementById('joinRoomBtn');
 
 let localStream = null;
 let peerConnection = null;
@@ -34,23 +31,33 @@ const configuration = {
   ]
 };
 
-// Dropdown
-menuBtn.addEventListener('click', () => menuDropdown.classList.toggle('hidden'));
-hostBtn.addEventListener('click', () => { alert('Room hosted! Share ID with others.'); menuDropdown.classList.add('hidden'); });
-joinRoomBtn.addEventListener('click', () => { document.getElementById('joinSection').scrollIntoView(); menuDropdown.classList.add('hidden'); });
+// Load room list
+socket.on('room_list', rooms => {
+  roomList.innerHTML = '';
+  rooms.forEach(r => {
+    const li = document.createElement('li');
+    li.textContent = r;
+    li.addEventListener('click', () => joinRoom(r));
+    roomList.appendChild(li);
+  });
+});
 
 joinBtn.addEventListener('click', () => {
-  room = roomInput.value.trim();
-  if (!room) { alert('Please enter a room ID'); return; }
+  const r = roomInput.value.trim();
+  if (!r) return;
+  joinRoom(r);
+});
+
+function joinRoom(r) {
+  room = r;
   socket.emit('join_room', room);
-  joinBtn.disabled = true;
-  roomInput.disabled = true;
+  currentRoom.textContent = room;
   chatSection.classList.remove('hidden');
   messageInput.disabled = false;
   sendBtn.disabled = false;
   startAudioCallBtn.disabled = false;
   startVideoCallBtn.disabled = false;
-});
+}
 
 sendBtn.addEventListener('click', sendMessage);
 messageInput.addEventListener('keyup', e => { if (e.key === 'Enter') sendMessage(); });
@@ -64,6 +71,11 @@ function sendMessage() {
 }
 
 socket.on('chat_message', msg => addMessage(msg, 'friend'));
+socket.on('load_history', history => {
+  chatMessages.innerHTML = '';
+  history.forEach(m => addMessage(m.message, m.sender === socket.id ? 'you' : 'friend'));
+});
+
 function addMessage(msg, type) {
   const div = document.createElement('div');
   div.className = `msg ${type}`;
@@ -82,34 +94,25 @@ async function startCall(video = true) {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
     localVideo.srcObject = localStream;
-
-    peerConnection = new RTCPeerConnection(configuration);
+    createPeer();
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-    peerConnection.ontrack = e => remoteVideo.srcObject = e.streams[0];
-    peerConnection.onicecandidate = e => e.candidate && socket.emit('signal', { room, candidate: e.candidate });
-
-    videoSection.classList.remove('hidden');
-    endCallBtn.classList.remove('hidden');
-    muteCallBtn.classList.remove('hidden');
-    startAudioCallBtn.disabled = true;
-    startVideoCallBtn.disabled = true;
-
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
     socket.emit('signal', { room, sdp: peerConnection.localDescription });
+    uiCallStarted();
   } catch (err) { console.error(err); alert('Media error'); }
+}
+
+function createPeer() {
+  peerConnection = new RTCPeerConnection(configuration);
+  peerConnection.ontrack = e => remoteVideo.srcObject = e.streams[0];
+  peerConnection.onicecandidate = e => e.candidate && socket.emit('signal', { room, candidate: e.candidate });
 }
 
 async function endCall() {
   if (peerConnection) { peerConnection.close(); peerConnection = null; }
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-  videoSection.classList.add('hidden');
-  endCallBtn.classList.add('hidden');
-  muteCallBtn.classList.add('hidden');
-  startAudioCallBtn.disabled = false;
-  startVideoCallBtn.disabled = false;
-  localVideo.srcObject = null;
-  remoteVideo.srcObject = null;
+  uiCallEnded();
 }
 
 function toggleMute() {
@@ -121,10 +124,8 @@ function toggleMute() {
 
 socket.on('signal', async data => {
   if (!peerConnection) {
-    peerConnection = new RTCPeerConnection(configuration);
+    createPeer();
     localStream?.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-    peerConnection.ontrack = e => remoteVideo.srcObject = e.streams[0];
-    peerConnection.onicecandidate = e => e.candidate && socket.emit('signal', { room, candidate: e.candidate });
   }
   if (data.sdp) {
     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -137,6 +138,24 @@ socket.on('signal', async data => {
     await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
   }
 });
+
+// UI Helpers
+function uiCallStarted() {
+  videoSection.classList.remove('hidden');
+  endCallBtn.classList.remove('hidden');
+  muteCallBtn.classList.remove('hidden');
+  startAudioCallBtn.disabled = true;
+  startVideoCallBtn.disabled = true;
+}
+function uiCallEnded() {
+  videoSection.classList.add('hidden');
+  endCallBtn.classList.add('hidden');
+  muteCallBtn.classList.add('hidden');
+  startAudioCallBtn.disabled = false;
+  startVideoCallBtn.disabled = false;
+  localVideo.srcObject = null;
+  remoteVideo.srcObject = null;
+}
 
 // Theme
 toggleThemeBtn.addEventListener('click', () => {
