@@ -1,5 +1,4 @@
 const socket = io();
-
 let room = '';
 let callStartTime = null;
 
@@ -12,13 +11,16 @@ const chatSection = document.getElementById('chatSection');
 const chatMessages = document.getElementById('chatMessages');
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
-const startCallBtn = document.getElementById('startCallBtn');
+const startAudioCallBtn = document.getElementById('startAudioCallBtn');
+const startVideoCallBtn = document.getElementById('startVideoCallBtn');
 const endCallBtn = document.getElementById('endCallBtn');
 const callModal = document.getElementById('callModal');
 const dailyFrame = document.getElementById('dailyFrame');
 const closeModalBtn = document.getElementById('closeModalBtn');
 
-const dailyUrl = "https://your-team.daily.co/test-room"; // এখানে তোমার Daily.co রুম URL বসাও
+// তোমার রুম URL
+const audioCallUrl = "https://chat-app1.daily.co/chatappv1";
+const videoCallUrl = "https://chat-app1.daily.co/chatappv2";
 
 function addMessage(msg, type) {
   const div = document.createElement('div');
@@ -56,7 +58,8 @@ function joinRoom(r) {
   chatSection.classList.remove('hidden');
   messageInput.disabled = false;
   sendBtn.disabled = false;
-  startCallBtn.disabled = false;
+  startAudioCallBtn.disabled = false;
+  startVideoCallBtn.disabled = false;
 }
 
 // Chat
@@ -76,15 +79,18 @@ socket.on('load_history', history => {
 });
 
 // Call
-startCallBtn.addEventListener('click', () => {
-  dailyFrame.src = dailyUrl;
-  callModal.style.display = 'block';
-  callStartTime = Date.now();
-  addMessage("📞 Call started", 'friend');
-  endCallBtn.classList.remove('hidden');
-});
+startAudioCallBtn.addEventListener('click', () => startCall(audioCallUrl, "Audio"));
+startVideoCallBtn.addEventListener('click', () => startCall(videoCallUrl, "Video"));
 endCallBtn.addEventListener('click', endCall);
 closeModalBtn.addEventListener('click', endCall);
+
+function startCall(url, type) {
+  dailyFrame.src = url;
+  callModal.style.display = 'block';
+  callStartTime = Date.now();
+  addMessage(`📞 ${type} call started`, 'friend');
+  endCallBtn.classList.remove('hidden');
+}
 
 function endCall() {
   callModal.style.display = 'none';
