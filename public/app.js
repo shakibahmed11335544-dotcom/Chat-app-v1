@@ -1,4 +1,8 @@
+const APP_ID = "b7d80e7b093348f5a274438ce1c005cc"; // তোমার Agora App ID
 const socket = io();
+
+let client = null;
+let localTracks = [];
 let room = '';
 let callStartTime = null;
 
@@ -11,16 +15,13 @@ const chatSection = document.getElementById('chatSection');
 const chatMessages = document.getElementById('chatMessages');
 const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
+
 const startAudioCallBtn = document.getElementById('startAudioCallBtn');
 const startVideoCallBtn = document.getElementById('startVideoCallBtn');
 const endCallBtn = document.getElementById('endCallBtn');
-const callModal = document.getElementById('callModal');
-const dailyFrame = document.getElementById('dailyFrame');
-const closeModalBtn = document.getElementById('closeModalBtn');
-
-// তোমার রুম URL
-const audioCallUrl = "https://chat-app1.daily.co/chatappv1";
-const videoCallUrl = "https://chat-app1.daily.co/chatappv2";
+const videoSection = document.getElementById('videoSection');
+const localVideo = document.getElementById('localVideo');
+const remoteVideo = document.getElementById('remoteVideo');
 
 function addMessage(msg, type) {
   const div = document.createElement('div');
@@ -78,24 +79,53 @@ socket.on('load_history', history => {
   history.forEach(m => addMessage(m.message, m.sender === socket.id ? 'you' : 'friend'));
 });
 
-// Call
-startAudioCallBtn.addEventListener('click', () => startCall(audioCallUrl, "Audio"));
-startVideoCallBtn.addEventListener('click', () => startCall(videoCallUrl, "Video"));
-endCallBtn.addEventListener('click', endCall);
-closeModalBtn.addEventListener('click', endCall);
-
-function startCall(url, type) {
-  dailyFrame.src = url;
-  callModal.style.display = 'block';
+// Agora Call
+async function joinChannel(video = true) {
+  client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+  await client.join(APP_ID, room, null, null);
   callStartTime = Date.now();
-  addMessage(`📞 ${type} call started`, 'friend');
-  endCallBtn.classList.remove('hidden');
+  addMessage(`📞 ${video ? "Video" : "Audio"} call started`, 'friend');
+
+  if (video) {
+    localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+    localTracks[1].play(localVideo);
+    await client.publish(localTracks);
+  } else {
+    localTracks = [await AgoraRTC.createMicrophoneAudioTrack()];
+    await client.publish(localTracks);
+  }
+
+  client.on("user-published", async (user, mediaType) => {
+    await client.subscribe(user, mediaType);
+    if (mediaType === "video") user.videoTrack.play(remoteVideo);
+    if (mediaType === "audio") user.audioTrack.play();
+  });
+
+  uiCallStarted();
 }
 
-function endCall() {
-  callModal.style.display = 'none';
-  dailyFrame.src = "";
+async function leaveChannel() {
+  if (localTracks.length) localTracks.forEach(track => track.close());
+  await client.leave();
   const duration = Math.floor((Date.now() - callStartTime) / 1000);
   addMessage(`📞 Call ended. Duration: ${duration}s`, 'friend');
-  endCallBtn.classList.add('hidden');
+  uiCallEnded();
 }
+
+// UI
+function uiCallStarted() {
+  videoSection.classList.remove('hidden');
+  endCallBtn.classList.remove('hidden');
+  startAudioCallBtn.disabled = true;
+  startVideoCallBtn.disabled = true;
+}
+function uiCallEnded() {
+  videoSection.classList.add('hidden');
+  endCallBtn.classList.add('hidden');
+  startAudioCallBtn.disabled = false;
+  startVideoCallBtn.disabled = false;
+}
+
+startVideoCallBtn.addEventListener('click', () => joinChannel(true));
+startAudioCallBtn.addEventListener('click', () => joinChannel(false));
+endCallBtn.addEventListener('click', leaveChannel);

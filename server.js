@@ -10,7 +10,6 @@ let rooms = {}; // { roomId: { messages: [] } }
 
 io.on('connection', socket => {
   console.log('User connected:', socket.id);
-
   socket.emit('room_list', Object.keys(rooms));
 
   socket.on('join_room', room => {
