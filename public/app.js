@@ -1,5 +1,6 @@
 const socket = io();
 
+// DOM elements
 const roomList = document.getElementById('roomList');
 const roomInput = document.getElementById('roomInput');
 const joinBtn = document.getElementById('joinBtn');
@@ -19,19 +20,21 @@ const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
 const toggleThemeBtn = document.getElementById('toggleThemeBtn');
 
+// State
 let localStream = null;
 let peerConnection = null;
 let room = '';
 let isAudioMuted = false;
 
+// ICE + TURN
 const configuration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'turn:relay1.expressturn.com:3478', username: 'efree', credential: 'efree' }
+    { urls: 'turn:numb.viagenie.ca', username: 'webrtc@live.com', credential: 'muazkh' }
   ]
 };
 
-// Load room list
+// Load available room list
 socket.on('room_list', rooms => {
   roomList.innerHTML = '';
   rooms.forEach(r => {
@@ -42,6 +45,7 @@ socket.on('room_list', rooms => {
   });
 });
 
+// Join room
 joinBtn.addEventListener('click', () => {
   const r = roomInput.value.trim();
   if (!r) return;
@@ -59,6 +63,7 @@ function joinRoom(r) {
   startVideoCallBtn.disabled = false;
 }
 
+// Send chat
 sendBtn.addEventListener('click', sendMessage);
 messageInput.addEventListener('keyup', e => { if (e.key === 'Enter') sendMessage(); });
 
@@ -70,6 +75,7 @@ function sendMessage() {
   messageInput.value = '';
 }
 
+// Receive chat
 socket.on('chat_message', msg => addMessage(msg, 'friend'));
 socket.on('load_history', history => {
   chatMessages.innerHTML = '';
@@ -84,7 +90,8 @@ function addMessage(msg, type) {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// WebRTC
+// ==================== WebRTC Call ====================
+
 startAudioCallBtn.addEventListener('click', () => startCall(false));
 startVideoCallBtn.addEventListener('click', () => startCall(true));
 endCallBtn.addEventListener('click', endCall);
@@ -94,8 +101,10 @@ async function startCall(video = true) {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
     localVideo.srcObject = localStream;
-    createPeer();
+
+    createPeer(true); // caller
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
     socket.emit('signal', { room, sdp: peerConnection.localDescription });
@@ -103,10 +112,19 @@ async function startCall(video = true) {
   } catch (err) { console.error(err); alert('Media error'); }
 }
 
-function createPeer() {
+function createPeer(isCaller = false) {
   peerConnection = new RTCPeerConnection(configuration);
-  peerConnection.ontrack = e => remoteVideo.srcObject = e.streams[0];
+  peerConnection.ontrack = e => { remoteVideo.srcObject = e.streams[0]; };
   peerConnection.onicecandidate = e => e.candidate && socket.emit('signal', { room, candidate: e.candidate });
+
+  // Caller renegotiation
+  peerConnection.onnegotiationneeded = async () => {
+    if (isCaller) {
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      socket.emit('signal', { room, sdp: peerConnection.localDescription });
+    }
+  };
 }
 
 async function endCall() {
@@ -122,10 +140,11 @@ function toggleMute() {
   muteCallBtn.textContent = isAudioMuted ? '🔈 Unmute' : '🔇 Mute';
 }
 
+// Signaling
 socket.on('signal', async data => {
   if (!peerConnection) {
-    createPeer();
-    localStream?.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+    createPeer(false);
+    if (localStream) localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
   }
   if (data.sdp) {
     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -135,11 +154,13 @@ socket.on('signal', async data => {
       socket.emit('signal', { room, sdp: peerConnection.localDescription });
     }
   } else if (data.candidate) {
-    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+    try {
+      await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+    } catch (e) { console.error("Error adding ICE candidate", e); }
   }
 });
 
-// UI Helpers
+// ==================== UI Helpers ====================
 function uiCallStarted() {
   videoSection.classList.remove('hidden');
   endCallBtn.classList.remove('hidden');
@@ -157,7 +178,7 @@ function uiCallEnded() {
   remoteVideo.srcObject = null;
 }
 
-// Theme
+// Theme toggle
 toggleThemeBtn.addEventListener('click', () => {
   document.body.classList.toggle('dark');
   toggleThemeBtn.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
