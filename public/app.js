@@ -99,6 +99,7 @@ muteCallBtn.addEventListener('click', toggleMute);
 
 async function startCall(video = true) {
   try {
+    console.log("Starting call...");
     localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video });
     localVideo.srcObject = localStream;
 
@@ -107,19 +108,36 @@ async function startCall(video = true) {
 
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
+    console.log("Local offer created:", offer);
     socket.emit('signal', { room, sdp: peerConnection.localDescription });
     uiCallStarted();
-  } catch (err) { console.error(err); alert('Media error'); }
+  } catch (err) { console.error("Error in startCall:", err); alert('Media error'); }
 }
 
 function createPeer(isCaller = false) {
   peerConnection = new RTCPeerConnection(configuration);
-  peerConnection.ontrack = e => { remoteVideo.srcObject = e.streams[0]; };
-  peerConnection.onicecandidate = e => e.candidate && socket.emit('signal', { room, candidate: e.candidate });
+  console.log("RTCPeerConnection created. Caller:", isCaller);
+
+  peerConnection.ontrack = e => { 
+    console.log("Remote track received.");
+    remoteVideo.srcObject = e.streams[0]; 
+  };
+
+  peerConnection.onicecandidate = e => {
+    if (e.candidate) {
+      console.log("ICE candidate generated:", e.candidate);
+      socket.emit('signal', { room, candidate: e.candidate });
+    }
+  };
+
+  peerConnection.onconnectionstatechange = () => {
+    console.log("Connection state:", peerConnection.connectionState);
+  };
 
   // Caller renegotiation
   peerConnection.onnegotiationneeded = async () => {
     if (isCaller) {
+      console.log("Negotiation needed: creating new offer...");
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
       socket.emit('signal', { room, sdp: peerConnection.localDescription });
@@ -142,19 +160,24 @@ function toggleMute() {
 
 // Signaling
 socket.on('signal', async data => {
+  console.log("Signal received:", data);
   if (!peerConnection) {
     createPeer(false);
     if (localStream) localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
   }
   if (data.sdp) {
+    console.log("Setting remote description:", data.sdp.type);
     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
     if (data.sdp.type === 'offer') {
+      console.log("Creating answer...");
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
+      console.log("Sending answer...");
       socket.emit('signal', { room, sdp: peerConnection.localDescription });
     }
   } else if (data.candidate) {
     try {
+      console.log("Adding remote ICE candidate");
       await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
     } catch (e) { console.error("Error adding ICE candidate", e); }
   }
