@@ -1,4 +1,4 @@
-const APP_ID = "b7d80e7b093348f5a274438ce1c005cc"; // তোমার Agora App ID
+const APP_ID = "b7d80e7b093348f5a274438ce1c005cc"; 
 const socket = io();
 
 let client = null;
@@ -22,6 +22,7 @@ const endCallBtn = document.getElementById('endCallBtn');
 const videoSection = document.getElementById('videoSection');
 const localVideo = document.getElementById('localVideo');
 const remoteVideo = document.getElementById('remoteVideo');
+const toggleThemeBtn = document.getElementById('toggleThemeBtn');
 
 function addMessage(msg, type) {
   const div = document.createElement('div');
@@ -30,6 +31,11 @@ function addMessage(msg, type) {
   chatMessages.appendChild(div);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 }
+
+// Theme toggle
+toggleThemeBtn.addEventListener('click', () => {
+  document.body.classList.toggle('dark');
+});
 
 // Room list
 socket.on('room_list', rooms => {
@@ -53,7 +59,7 @@ newRoomBtn.addEventListener('click', () => {
 });
 
 function joinRoom(r) {
-  room = r;
+  room = r || "default-room";
   socket.emit('join_room', room);
   currentRoom.textContent = room;
   chatSection.classList.remove('hidden');
@@ -82,7 +88,7 @@ socket.on('load_history', history => {
 // Agora Call
 async function joinChannel(video = true) {
   client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-  await client.join(APP_ID, room, null, null);
+  await client.join(APP_ID, room || "default-room", null, null);
   callStartTime = Date.now();
   addMessage(`📞 ${video ? "Video" : "Audio"} call started`, 'friend');
 

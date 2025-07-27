@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Premium ChatApp</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -21,7 +22,9 @@
   <main class="chat-container">
     <header class="chat-header">
       <h1 id="currentRoom">Select or Join a Room</h1>
-      <button id="toggleThemeBtn">🌙</button>
+      <div>
+        <button id="toggleThemeBtn">🌙</button>
+      </div>
     </header>
 
     <!-- Join Room -->
@@ -41,8 +44,8 @@
 
       <!-- Call Buttons -->
       <div class="call-buttons">
-        <button id="startAudioCallBtn" disabled>📞 Audio Call</button>
-        <button id="startVideoCallBtn" disabled>📹 Video Call</button>
+        <button id="startAudioCallBtn" disabled>📞 Audio</button>
+        <button id="startVideoCallBtn" disabled>📹 Video</button>
         <button id="endCallBtn" class="hidden">❌ End</button>
       </div>
 
@@ -58,5 +61,10 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 <script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js');
+  }
+</script>
 </body>
 </html>

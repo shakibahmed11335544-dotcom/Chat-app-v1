@@ -6,7 +6,7 @@ const io = require('socket.io')(http, { cors: { origin: "*" } });
 const port = process.env.PORT || 3000;
 app.use(express.static('public'));
 
-let rooms = {}; // { roomId: { messages: [] } }
+let rooms = {};
 
 io.on('connection', socket => {
   console.log('User connected:', socket.id);
