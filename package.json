@@ -2,9 +2,11 @@
   "name": "goponkotha",
   "version": "1.0.0",
   "scripts": {
-    "build:client": "cd client && npm install && npm run build:only && mkdir -p ../server/public && cp -r dist/* ../server/public/",
-    "build:server": "cd server && npm install && npm run build",
     "build": "npm run build:client && npm run build:server",
-    "start": "cd server && node dist/index.js"
-  }
+    "build:client": "cd client && npm install && npm run build:only && mkdir -p ../server/public && cp -r dist/* ../server/public",
+    "build:server": "cd server && npm install && npm run build",
+    "server-build": "cd server && npm install"
+  },
+  "dependencies": {},
+  "devDependencies": {}
 }
