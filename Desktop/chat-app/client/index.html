@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GoponKotha - Secure Messaging</title>
+    <meta name="description" content="GoponKotha - A modern, secure messaging app with WhatsApp-like features" />
+    <link rel="icon" type="image/svg+xml" href="/public/placeholder.svg" />
+  </head>
+
+  <body class="dark">
+    <div id="root"></div>
+
+    <script type="module" src="/client/main.tsx"></script>
+  </body>
+<script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+<script>
+  const socket = io("http://localhost:5000");
+
+  socket.on("receive_message", (data) => {
+    const msgBox = document.getElementById("messages");
+    const div = document.createElement("div");
+    div.textContent = data.sender + ": " + data.text;
+    msgBox.appendChild(div);
+  });
+
+  function sendMessage() {
+    const input = document.getElementById("message");
+    const msg = { sender: "User", text: input.value };
+    socket.emit("send_message", msg);
+    input.value = "";
+  }
+</script>
+
+</html>
