@@ -6,7 +6,5 @@
     "build:server": "cd server && npm install && npm run build",
     "build": "npm run build:client && npm run build:server",
     "start": "cd server && node dist/index.js"
-  },
-  "dependencies": {},
-  "devDependencies": {}
+  }
 }
