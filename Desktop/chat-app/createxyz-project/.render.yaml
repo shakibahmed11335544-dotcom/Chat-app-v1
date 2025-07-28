@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: goponkotha
+    env: node
+    rootDir: apps/web
+    buildCommand: bun run build
+    startCommand: bun run preview
+    publishPath: dist
+    autoDeploy: true
