@@ -2,8 +2,9 @@ services:
   - type: web
     name: goponkotha
     env: node
+    buildCommand: cd apps/web && bun install && bun run build
+    startCommand: cd apps/web && bun run dev
     rootDir: apps/web
-    buildCommand: bun run build
-    startCommand: bun run preview
-    publishPath: dist
-    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
